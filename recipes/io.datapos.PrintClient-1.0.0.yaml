@@ -1,0 +1,18 @@
+---
+RecipeFormatVersion: '2020-01-25'
+ComponentName: io.datapos.PrintClient
+ComponentVersion: '1.0.0'
+ComponentDescription: Receives print jobs from the cloud print server (printos-serverless-service).
+ComponentPublisher: DataPOS
+ComponentConfiguration:
+  DefaultConfiguration:
+    printServerUrl: https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev
+    destinationPassword: blueberry
+Manifests:
+- Platform:
+    os: linux
+  Lifecycle:
+    Run: |
+      ({artifacts:path}/run-PrintOS.jar.sh '{configuration:/system/thingName}'
+      '{configuration:/destinationPassword}' &) && node {artifacts:path}/print-client.js
+      --print-server-url='{configuration:/printServerUrl}' --destination-password='{configuration:/destinationPassword}'"
