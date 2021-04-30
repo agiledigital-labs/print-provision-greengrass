@@ -252,7 +252,9 @@ app.post('/update', async (req, res) => {
       const response = await axios.post(`${printServerUrl}/update`, params);
 
       if (response.status !== 200 && req.body.status === 'Completed') {
-        logMessage('Failed', `Print job [${req.body.id}] update failed, but print job succeed, status [${req.body.status}]`, req.body.id);
+        logMessage('Failed',
+          `Print job [${req.body.id}] update failed, but print job succeed, status [${req.body.status}]`,
+          req.body.id);
 
         return res.send({
           pass: false
@@ -270,8 +272,7 @@ app.post('/update', async (req, res) => {
         return res.send({
           pass: true
         });
-      }
-      else {
+      } else {
         logMessage('Failed', `Print job [${req.body.id}] failed, status [${req.body.status}]`, req.body.id);
 
         return res.send({

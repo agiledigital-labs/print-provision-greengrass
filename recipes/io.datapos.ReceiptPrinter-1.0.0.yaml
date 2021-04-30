@@ -7,15 +7,20 @@ ComponentDescription: |
 ComponentPublisher: DataPOS
 ComponentConfiguration:
   DefaultConfiguration:
-    destinationPassword: blueberry
     printer: EPSON_TM-T82III
+    # Note that the username is called the "destination" in the DB for printos-serverless-service
+    # and must match the IoT Thing name (i.e. the name of this device in AWS IoT). PrintOS.jar
+    # needs the username and password so it can report the statuses of the print jobs to
+    # printos-serverless-service (via the io.datapos.ReceiptPrinterHTTPInterface component).
+    destinationUsername: '{configuration:/system/thingName}'
+    destinationPassword: blueberry
 Manifests:
 - Platform:
     os: linux
   Lifecycle:
-    Run: |
-      # todo what does it actually need thingName and destinationPassword for?
-      {artifacts:path}/run.sh
-      '{configuration:/system/thingName}'
-      '{configuration:/destinationPassword}'
-      '{configuration:/printer}'
+    Setenv:
+      ARTIFACTS_PATH: '{artifacts:path}'
+      RECEIPT_PRINTER: '{configuration:/printer}'
+      DESTINATION_USERNAME: '{configuration:/destinationUsername}'
+      DESTINATION_PASSWORD: '{configuration:/destinationPassword}'
+    Run: '{artifacts:path}/run.sh'

@@ -6,13 +6,15 @@ ComponentDescription: Receives print jobs from the cloud print server (printos-s
 ComponentPublisher: DataPOS
 ComponentConfiguration:
   DefaultConfiguration:
+    # todoc comment
     printServerUrl: https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev
+    # todoc comment
     destinationPassword: blueberry
 Manifests:
 - Platform:
     os: linux
   Lifecycle:
     Run: |
-      ({artifacts:path}/run-PrintOS.jar.sh '{configuration:/system/thingName}'
-      '{configuration:/destinationPassword}' &) && node {artifacts:path}/print-client.js
-      --print-server-url='{configuration:/printServerUrl}' --destination-password='{configuration:/destinationPassword}'"
+      node {artifacts:path}/print-client.js \
+        --print-server-url='{configuration:/printServerUrl}' \
+        --destination-password='{configuration:/destinationPassword}'
