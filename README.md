@@ -4,9 +4,32 @@ todo content
 
 For now, see <https://jira.agiledigital.com.au/browse/QFXFB-888>.
 
+Based on <https://github.com/DataPOS-Labs/print-provision>. Runs in [AWS
+Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html).
+
 todo put the drawio diagram in here
 
 todo is there anything we should copy from the print-provision repo's README?
+
+## Directory Structure
+
+```
+├── artifacts/
+│   The software artifacts for the Greengrass components, one subdir per component. The contents are
+│   deployed to the IoT devices (the Raspberry Pis).
+│   ├── io.datapos.PrintClient/
+│   │   The MQTT and HTTP interfaces. Receives print jobs.
+│   └── io.datapos.ReceiptPrinter/
+│       Formats the print jobs and prints them.
+├── copy-to-pi.sh
+│   Copies this dir to your test device (RPi) so you can deploy locally for testing.
+├── deploy-local-on-pi.sh
+│   Deploy locally for testing. Run this on your test device.
+└── recipes/
+    The config and metadata for the Greengrass components.
+    ├── io.datapos.PrintClient-1.0.0.yaml
+    └── io.datapos.ReceiptPrinter-1.0.0.yaml
+```
 
 ## Testing
 
@@ -19,8 +42,8 @@ always be blank, so you still need a real receipt printer to test the output.
     configures the driver to write the PDFs to `/var/spool/cups-pdf/ggc_user` (`ggc_user` is the
     user the component runs as), which avoids permissions issues.
  1. Restart CUPS: `sudo systemctl restart cups`
- 1. In <recipes/io.datapos.ReceiptPrinter-1.0.0.yaml>, change `printer: EPSON_TM-T82III` to
-    `printer: PDF` and redeploy.
+ 1. In [io.datapos.ReceiptPrinter-1.0.0.yaml](recipes/io.datapos.ReceiptPrinter-1.0.0.yaml), change
+    `printer: EPSON_TM-T82III` to `printer: PDF` and redeploy.
 
 ### Submitting a Test Job
 
