@@ -7,9 +7,34 @@ For now, see <https://jira.agiledigital.com.au/browse/QFXFB-888>.
 Based on <https://github.com/DataPOS-Labs/print-provision>. Runs in [AWS
 Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html).
 
+todo explain what a greengrass component is and other basic info
+
 todo put the drawio diagram in here
 
 todo is there anything we should copy from the print-provision repo's README?
+
+### Remote Printing Process
+
+ 1. A patron places an order through one of the patron apps.
+ 1. [core-services](https://stash.agiledigital.com.au/projects/QFX/repos/merivale/browse/server)
+    creates a print job with
+    [printos-serverless-service](https://github.com/DataPOS-Labs/printos-serverless-service) to
+    print the order receipt on the vendor's printer.
+ 1. printos-serverless-service sends the print job to the vendor's Raspberry Pi over MQTT.
+ 1. The MQTT message triggers the ReceiptPrinterMQTTInterface Lambda, which runs on the Raspberry
+    Pi. It just passes the print job along to ReceiptPrinterHTTPInterface.
+ 1. ReceiptPrinter polls ReceiptPrinterHTTPInterface and receives the print job. It formats the
+    receipt and prints it. Then it tells ReceiptPrinterHTTPInterface that the job is complete, which
+    tells printos-serverless-service and so on.
+
+todo explain why it uses mqtt
+
+### Local Network Printing Process
+
+ 1. A patron places an order in person and the vendor's staff enter it into PotatOS.
+ 1. PotatOS submits a print job for the receipt over the local network through the HTTP interface.
+ 1. ReceiptPrinter polls ReceiptPrinterHTTPInterface and receives the print job. It formats the
+    receipt and prints it.
 
 ## Directory Structure
 
