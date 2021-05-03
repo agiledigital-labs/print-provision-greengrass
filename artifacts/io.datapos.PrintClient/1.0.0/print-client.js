@@ -342,6 +342,8 @@ app.post('/update', async (req, res) => {
 // todo push all this to a WIP branch/repo? (and link it in a comment on the ticket)
 // todo rename io.datapos.PrintClient to io.datapos.ReceiptPrinterMQTTInterface and call the HTTP
 //      component io.datapos.ReceiptPrinterHTTPInterface
+// todo make print-greengrass a branch of print-provision instead of a separate repo. (won't lose
+//      the history that way)
 const startHealthCheck = async () => {
   try{ 
     console.log('Reporting health...');
