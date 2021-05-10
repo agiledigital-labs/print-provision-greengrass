@@ -1,17 +1,44 @@
 # PrintOS Something todo name
 
-todo content
-
-For now, see <https://jira.agiledigital.com.au/browse/QFXFB-888>.
+See <https://jira.agiledigital.com.au/browse/QFXFB-888>.
 
 Based on <https://github.com/DataPOS-Labs/print-provision>. Runs in [AWS
 Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html).
 
-todo explain what a greengrass component is and other basic info
-
-todo put the drawio diagram in here
-
-todo is there anything we should copy from the print-provision repo's README?
+ - todo explain what a greengrass component is and other basic info
+ - todo put the drawio diagram in here
+ - todo is there anything we should copy from the print-provision repo's README?
+ - todo document how greengrass handles health checking
+ - todo document how to manage the devices using greengrass
+ - todo document how to set up a pi from scratch, install greengrass, etc. see greengrass docs.
+        - maybe link to them
+        - need to explain/link the minimal installer policy?
+        - how to install the aws cli? only v1 supported on Pi (32-bit)
+        - how to put temp creds on the pi? e.g. 
+          ```
+          (aws sts assume-role --role-arn
+          arn:aws:iam::926078734639:role/greengrass-core-installer --role-session-name
+          "RoleSession1")
+          ```
+          the parens are just to run it in a subshell. it prints the creds
+ - todo document this:
+        - to deploy the custom component locally to test it, copy to the pi e.g.
+          ```
+          rsync -a --info=progress2 --no-inc-recursive ~/datapos/scratch/print-greengrass \
+          pi@192.168.10.77:/home/pi/print-greengrass
+          ```
+          (takes a while first time because of node_modules) and then run these commands on the pi
+          (not sure you actually need the first one)
+          ```
+          sudo /greengrass/v2/bin/greengrass-cli deployment create --remove io.datapos.PrintClient
+          sudo /greengrass/v2/bin/greengrass-cli deployment create \
+          --recipeDir ~/print-greengrass/recipes \
+          --artifactDir ~/print-greengrass/artifacts \
+          --merge "io.datapos.PrintClient=1.0.0"
+          ```
+        - then you can check the logs in /greengrass/v2/logs, e.g.
+            `sudo tail -f /greengrass/v2/logs/io.datapos.PrintClient.log`
+        - it takes a while
 
 ### Remote Printing Process
 
@@ -27,7 +54,12 @@ todo is there anything we should copy from the print-provision repo's README?
     receipt and prints it. Then it tells ReceiptPrinterHTTPInterface that the job is complete, which
     tells printos-serverless-service and so on.
 
-todo explain why it uses mqtt
+todo explain why it uses mqtt. something like this (below). also mention qos?
+
+It has an MQTT interface because that's the protocol AWS IoT uses and also has an HTTP interface for
+jobs submitted locally by PotatOS. and that the HTTP interface is also polled by PrintOS.jar. maybe
+make a diagram of everything if there's time.  see
+https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
 
 ### Local Network Printing Process
 
@@ -40,18 +72,21 @@ todo explain why it uses mqtt
 
 ```
 ├── artifacts/
-│   The software artifacts for the Greengrass components, one subdir per component. The contents are
-│   deployed to the IoT devices (the Raspberry Pis).
-│   ├── io.datapos.PrintClient/
-│   │   The MQTT and HTTP interfaces. Receives print jobs.
-│   └── io.datapos.ReceiptPrinter/
-│       Formats the print jobs and prints them.
+│   │ The software artifacts for the Greengrass components, one subdir per component. The contents
+│   │ are deployed to the IoT devices (the Raspberry Pis).
+│   ├── io.datapos.ReceiptPrinter/
+│   │     Formats the print jobs and prints them.
+│   ├── io.datapos.ReceiptPrinterHTTPInterface/
+│   │     Receives print jobs through HTTP from the local network and from
+│   │     ReceiptPrinterMQTTInterface.
+│   └── io.datapos.ReceiptPrinterMQTTInterface/
+│         Receives remote (internet) print jobs from AWS through MQTT.
 ├── copy-to-pi.sh
-│   Copies this dir to your test device (RPi) so you can deploy locally for testing.
+│     Copies this dir to your test device (RPi) so you can deploy locally for testing.
 ├── deploy-local-on-pi.sh
-│   Deploy locally for testing. Run this on your test device.
+│     Deploy locally for testing. Run this on your test device.
 └── recipes/
-    The config and metadata for the Greengrass components.
+    │ The config and metadata for the Greengrass components.
     ├── io.datapos.PrintClient-1.0.0.yaml
     └── io.datapos.ReceiptPrinter-1.0.0.yaml
 ```

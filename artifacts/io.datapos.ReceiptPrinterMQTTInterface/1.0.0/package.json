@@ -1,0 +1,9 @@
+{
+  "name": "mqtt-interface",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^0.21.1"
+  }
+}
