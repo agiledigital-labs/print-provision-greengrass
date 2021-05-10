@@ -6,12 +6,14 @@
 # Deploys the Greengrass components locally on the Pi for testing.
 #
 # After running this script, you can check the logs with
-#     sudo tail -f /greengrass/v2/logs/io.datapos.PrintClient.log \
+#     sudo tail -f /greengrass/v2/logs/io.datapos.ReceiptPrinterHTTPInterface.log \
 #       -f /greengrass/v2/logs/io.datapos.ReceiptPrinter.log \
 #       -f /greengrass/v2/logs/greengrass.log
 #
 # It can take a few minutes for the new deployments to start up.
 #
+
+# todo add ReceiptPrinterMQTTInterface to this script
 
 # Check this script is running on the Pi.
 function fail {
@@ -27,7 +29,7 @@ set -x
 # todo not sure we actually need to do this
 
 sudo /greengrass/v2/bin/greengrass-cli deployment create \
-        --remove "io.datapos.PrintClient"
+        --remove "io.datapos.ReceiptPrinterHTTPInterface"
 
 sudo /greengrass/v2/bin/greengrass-cli deployment create \
         --remove "io.datapos.ReceiptPrinter"
@@ -37,7 +39,7 @@ sudo /greengrass/v2/bin/greengrass-cli deployment create \
 sudo /greengrass/v2/bin/greengrass-cli deployment create \
         --recipeDir ~/print-greengrass/recipes \
         --artifactDir ~/print-greengrass/artifacts \
-        --merge "io.datapos.PrintClient=1.0.0"
+        --merge "io.datapos.ReceiptPrinterHTTPInterface=1.0.0"
 
 sudo /greengrass/v2/bin/greengrass-cli deployment create \
         --recipeDir ~/print-greengrass/recipes \

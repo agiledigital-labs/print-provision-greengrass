@@ -1,8 +1,8 @@
 ---
 RecipeFormatVersion: '2020-01-25'
-ComponentName: io.datapos.PrintClient
+ComponentName: io.datapos.ReceiptPrinterHTTPInterface
 ComponentVersion: '1.0.0'
-ComponentDescription: Receives print jobs from the cloud print server (printos-serverless-service).
+ComponentDescription: Receives print jobs over HTTP and passes them to ReceiptPrinter.
 ComponentPublisher: DataPOS
 ComponentConfiguration:
   DefaultConfiguration:
@@ -15,6 +15,6 @@ Manifests:
     os: linux
   Lifecycle:
     Run: |
-      node {artifacts:path}/print-client.js \
+      node {artifacts:path}/http-interface.js \
         --print-server-url='{configuration:/printServerUrl}' \
         --destination-password='{configuration:/destinationPassword}'

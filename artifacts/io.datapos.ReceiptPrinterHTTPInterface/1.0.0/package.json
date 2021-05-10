@@ -1,8 +1,8 @@
 {
-  "name": "printos-client",
+  "name": "receipt-printer-http-interface",
   "version": "1.0.0",
   "description": "",
-  "main": "print-client.js",
+  "main": "http-interface.js",
   "dependencies": {
     "args-parser": "^1.1.0",
     "aws-iot-device-sdk": "^2.2.1",

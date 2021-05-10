@@ -248,7 +248,6 @@ app.post('/update', async (req, res) => {
 // todo what should we do with the server end of the health check? just delete it? is it used for
 //      anything else? probably talk to haolin about it
 // todo put `nvm use` in the README
-// todo change the name "print-client"? maybe just use the old name "printos-local-server"
 // todo need to create a policy for each device like provision.js does?
 // todo does stdout and stderr from this app and from PrintOS.jar end up in the right place
 //      (somewhere in AWS, i assume)
@@ -256,9 +255,6 @@ app.post('/update', async (req, res) => {
 //      https://docs.aws.amazon.com/greengrass/v2/developerguide/import-lambda-function-console.html#import-lambda-console-configure-function-parameters
 //      not sure what to do with the local HTTP print server stuff then, though. maybe split that
 //      out into a separate GG component?
-// todo push all this to a WIP branch/repo? (and link it in a comment on the ticket)
-// todo rename io.datapos.PrintClient to io.datapos.ReceiptPrinterMQTTInterface and call the HTTP
-//      component io.datapos.ReceiptPrinterHTTPInterface
 // todo make print-greengrass a branch of print-provision instead of a separate repo. (won't lose
 //      the history that way)
 const startHealthCheck = async () => {

@@ -22,22 +22,17 @@ Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot
           ```
           the parens are just to run it in a subshell. it prints the creds
  - todo document this:
-        - to deploy the custom component locally to test it, copy to the pi e.g.
+        - to deploy the custom component locally to test it, copy to the pi
           ```
-          rsync -a --info=progress2 --no-inc-recursive ~/datapos/scratch/print-greengrass \
-          pi@192.168.10.77:/home/pi/print-greengrass
+          ./copy-to-pi.sh
           ```
           (takes a while first time because of node_modules) and then run these commands on the pi
           (not sure you actually need the first one)
           ```
-          sudo /greengrass/v2/bin/greengrass-cli deployment create --remove io.datapos.PrintClient
-          sudo /greengrass/v2/bin/greengrass-cli deployment create \
-          --recipeDir ~/print-greengrass/recipes \
-          --artifactDir ~/print-greengrass/artifacts \
-          --merge "io.datapos.PrintClient=1.0.0"
+          ./deploy-local-on-pi.sh
           ```
         - then you can check the logs in /greengrass/v2/logs, e.g.
-            `sudo tail -f /greengrass/v2/logs/io.datapos.PrintClient.log`
+            `sudo tail -f /greengrass/v2/logs/io.datapos.ReceiptPrinterMQTTInterface.log`
         - it takes a while
 
 ### Remote Printing Process
@@ -87,7 +82,8 @@ https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
 │     Deploy locally for testing. Run this on your test device.
 └── recipes/
     │ The config and metadata for the Greengrass components.
-    ├── io.datapos.PrintClient-1.0.0.yaml
+    ├── io.datapos.ReceiptPrinterMQTTInterface-1.0.0.yaml
+    ├── todo add http interface here if we actually end up creating that file
     └── io.datapos.ReceiptPrinter-1.0.0.yaml
 ```
 
