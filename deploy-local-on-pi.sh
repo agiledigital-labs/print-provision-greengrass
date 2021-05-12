@@ -12,6 +12,12 @@
 #
 # It can take a few minutes for the new deployments to start up.
 #
+# Options:
+#  -r Deploy the io.datapos.ReceiptPrinter component.
+#  -h Deploy the io.datapos.ReceiptPrinterHTTPInterface component.
+#  -m Deploy the io.datapos.ReceiptPrinterMQTTInterface component.
+#  The default (i.e. no opts) is to deploy all components.
+#
 
 # todo add ReceiptPrinterMQTTInterface to this script
 
@@ -22,26 +28,69 @@ function fail {
 }
 uname -a | grep raspberrypi > /dev/null || fail
 
-# Print the commands as they run.
-set -x
+# Read the opts.
+while getopts "rhm" opt; do
+    case "$opt" in
+        r)
+            deploy_receipt_printer=true
+            ;;
+        h)
+            deploy_http_interface=true
+            ;;
+        m)
+            deploy_mqtt_interface=true
+            ;;
+    esac
+done
 
-# Remove the previous deployments (if any).
-# todo not sure we actually need to do this
-
-sudo /greengrass/v2/bin/greengrass-cli deployment create \
-        --remove "io.datapos.ReceiptPrinterHTTPInterface"
-
-sudo /greengrass/v2/bin/greengrass-cli deployment create \
-        --remove "io.datapos.ReceiptPrinter"
+# Deploy all by default.
+if [[ "$deploy_receipt_printer" != "true" ]] && \
+    [[ "$deploy_http_interface" != "true" ]] && \
+    [[ "$deploy_mqtt_interface" != "true" ]]; then
+    deploy_receipt_printer=true
+    deploy_http_interface=true
+    deploy_mqtt_interface=true
+fi
 
 # Deploy the components.
+#
+# Remove the previous deployments (if any) first because, for some reason, the components don't
+# always seem to update otherwise.
 
-sudo /greengrass/v2/bin/greengrass-cli deployment create \
-        --recipeDir ~/print-greengrass/recipes \
-        --artifactDir ~/print-greengrass/artifacts \
-        --merge "io.datapos.ReceiptPrinterHTTPInterface=1.0.0"
+if [[ "$deploy_http_interface" == "true" ]]; then
+    (set -x;
+        sudo /greengrass/v2/bin/greengrass-cli deployment create \
+                --remove "io.datapos.ReceiptPrinterHTTPInterface";
+        sudo /greengrass/v2/bin/greengrass-cli deployment create \
+                --recipeDir ~/print-greengrass/recipes \
+                --artifactDir ~/print-greengrass/artifacts \
+                --merge "io.datapos.ReceiptPrinterHTTPInterface=1.0.0")
+fi
 
-sudo /greengrass/v2/bin/greengrass-cli deployment create \
-        --recipeDir ~/print-greengrass/recipes \
-        --artifactDir ~/print-greengrass/artifacts \
-        --merge "io.datapos.ReceiptPrinter=1.0.0"
+if [[ "$deploy_mqtt_interface" == "true" ]]; then
+    # todo the recipe has my account id hardcoded in AWS_GREENGRASS_LAMBDA_ARN. the lambda fails
+    #      mysteriously otherwise
+    # todo probably need this first if already deployed through aws
+    #      sudo /greengrass/v2/bin/greengrass-cli deployment create --remove \
+    #      io.datapos.ReceiptPrinterMQTTInterface --groupId thinggroup/MyGreengrassCoreGroup
+    #      might need similar for the other components too
+    echo "WARNING: We're not sure whether ReceiptPrinterMQTTInterface can actually be deployed\
+ locally. This might not work."
+    (set -x;
+        sudo /greengrass/v2/bin/greengrass-cli deployment create \
+                --remove "io.datapos.ReceiptPrinterMQTTInterface"
+        sudo /greengrass/v2/bin/greengrass-cli deployment create \
+                --recipeDir ~/print-greengrass/recipes \
+                --artifactDir ~/print-greengrass/artifacts \
+                --merge "io.datapos.ReceiptPrinterMQTTInterface=1.0.0")
+fi
+
+if [[ "$deploy_receipt_printer" == "true" ]]; then
+    (set -x;
+        sudo /greengrass/v2/bin/greengrass-cli deployment create \
+                --remove "io.datapos.ReceiptPrinter"
+        sudo /greengrass/v2/bin/greengrass-cli deployment create \
+                --recipeDir ~/print-greengrass/recipes \
+                --artifactDir ~/print-greengrass/artifacts \
+                --merge "io.datapos.ReceiptPrinter=1.0.0")
+fi

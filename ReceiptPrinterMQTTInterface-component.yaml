@@ -1,0 +1,23 @@
+---
+lambdaFunction:
+  lambdaArn: arn:aws:lambda:ap-southeast-2:926078734639:function:ReceiptPrinterMQTTInterface:10
+  componentName: io.datapos.ReceiptPrinterMQTTInterface
+  #componentDescription: |
+  #  Receives print jobs from the cloud print server (printos-serverless-service) through MQTT.
+  # todo delete componentVersion?
+  #componentVersion: "9.2.0"
+  # todo uncomment this (then test it). maybe make it a soft dep?
+  #  componentDependencies:
+  #    io.datapos.ReceiptPrinterHTTPInterface:
+  #      versionRequirement: ">=1.0.0"
+  #      dependencyType: HARD
+  componentLambdaParameters:
+    eventSources:
+      # todo this works for one Thing because the Thing name ("MyGreengrassCore") is hardcoded in
+      #      the topic here, but i can't find a way to make the topic dynamic, so either every
+      #      device would receive every print job. i think the lambda will have to subscribe itself,
+      #      which means it will have to be pinned (or just not a lambda). see
+      #      https://forums.aws.amazon.com/thread.jspa?threadID=340390
+      - topic: print-job/MyGreengrassCore
+        type: IOT_CORE
+    pinned: false

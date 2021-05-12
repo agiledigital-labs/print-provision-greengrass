@@ -100,12 +100,14 @@ const logMessage = (status, message, printJobId) => {
 };
 
 /**
- * Registers the Thing Shadow.
+ * Register the Thing Shadow, which records the most recent print status for the device.
+ *
+ * The Thing Shadow document can be checked in the AWS IoT Thing console. It will likely be under
+ * the name "Classic Shadow".
  */
 const deviceStart = () => {
   try {  
     // Device thing shadow that reports the device current print status.
-    // Thing Shadow document can be checked on AWS IoT Thing console.
     thingShadow = new awsIot.thingShadow(deviceOptions(`${thingName}-shadow`));
 
     // Registers the Thing Shadow with the Thing name.
@@ -113,27 +115,37 @@ const deviceStart = () => {
   } catch (err) {
     console.error(err);
     
-    logMessage('Failed', `Failed to start job [${err.message}]`, 'N/A');
+    logMessage('Failed', `Failed to create Thing Shadow [${err.message}]`, 'N/A');
   }
 };
 
 // Handles local print job submission only. todoc update comment
 app.post('/submit', (req, res) => {
-  const data = req.body;      
+  // todo delete
+  console.log(`req.query`);
+  console.dir(req.query);
+  console.log(`req.body`);
+  console.dir(req.body);
+  const data = req.body;
+  console.log('data.remoteJobId');
+  console.dir(data.remoteJobId);
+  // todo return 400 if typeof data.data !== 'string'
   const printData = urlencode.decode(data.data.replace(/\+/g, '%20'));
 
-  // Check we haven't already received this job. This won't affect local jobs because they don't
-  // come with an ID.
-  // todo check with haolin to confirm ^
-  if (data.id && printJobs.ids.includes(data.id)) {
-    logMessage('Success', 'Ignoring duplicate message for print job', data.id);
+  // Check we haven't already received this job. This won't affect local jobs because they probably
+  // don't come with an ID. Or at least they don't use "remoteJobId".
+  if (typeof data.remoteJobId === 'string' &&
+    printJobs.ids.includes(data.remoteJobId)) {
+    logMessage('Success', 'Ignoring duplicate message for print job', data.remoteJobId);
     res.send({ pass: true });
     return;
   }
 
   // Local print job has id of -1 for PrintOS.jar.
-  // todo add id to the http interface docs. (if there are none, write some)
-  const id = data.id || '-1';
+  // todoc add remoteJobId to the http interface docs. (if there are none, write some)
+  const id = data.remoteJobId || '-1';
+
+  // todo return 400 if typeof id !== 'string'
 
   printJobs.ids.push(id);
   printJobs.data.push(printData);
@@ -243,7 +255,7 @@ app.post('/update', async (req, res) => {
   }
 });
 
-// todo comment out manual health check
+// todo remove manual health check?
 // todo check whether greengrass fully replaces manual health check functionality
 // todo what should we do with the server end of the health check? just delete it? is it used for
 //      anything else? probably talk to haolin about it
@@ -296,6 +308,7 @@ const startHealthCheck = async () => {
     });
   } catch (err) {
     console.error('Failed to report health', err.message);
+    console.error(err);
     console.error(err.response.data);
     console.error(err.response.status);
     console.error(err.response.headers);

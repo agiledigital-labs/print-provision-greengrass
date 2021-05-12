@@ -1,0 +1,78 @@
+{
+  "RecipeFormatVersion": "2020-01-25",
+  "ComponentName": "io.datapos.ReceiptPrinterMQTTInterface",
+  "ComponentVersion": "1.0.0",
+  "ComponentType": "aws.greengrass.lambda",
+  "ComponentDescription": "Receives print jobs from the cloud print server (printos-serverless-service) through MQTT.",
+  "ComponentPublisher": "DataPOS",
+  "ComponentConfiguration": {
+    "DefaultConfiguration": {
+      "lambdaExecutionParameters": {
+        "EnvironmentVariables": {}
+      },
+      "containerParams": {
+        "memorySize": 16000,
+        "mountROSysfs": false,
+        "volumes": {},
+        "devices": {}
+      },
+      "containerMode": "GreengrassContainer",
+      "timeoutInSeconds": 3,
+      "maxInstancesCount": 100,
+      "inputPayloadEncodingType": "json",
+      "maxQueueSize": 1000,
+      "pinned": false,
+      "maxIdleTimeInSeconds": 60,
+      "statusTimeoutInSeconds": 60,
+      "pubsubTopics": {
+        "0": {
+          "topic": "print-job/MyGreengrassCore",
+          "type": "IOT_CORE"
+        }
+      }
+    }
+  },
+  "ComponentDependencies": {
+    "aws.greengrass.LambdaLauncher": {
+      "VersionRequirement": ">=1.0.0",
+      "DependencyType": "HARD"
+    },
+    "aws.greengrass.TokenExchangeService": {
+      "VersionRequirement": ">=1.0.0",
+      "DependencyType": "HARD"
+    },
+    "aws.greengrass.LambdaRuntimes": {
+      "VersionRequirement": ">=1.0.0",
+      "DependencyType": "SOFT"
+    }
+  },
+  "Manifests": [
+    {
+      "Platform": {},
+      "Lifecycle": {}
+    }
+  ],
+  "Lifecycle": {
+    "startup": {
+      "requiresPrivilege": true,
+      "script": "{aws.greengrass.LambdaLauncher:artifacts:path}/lambda-launcher start"
+    },
+    "setenv": {
+      "AWS_GREENGRASS_LAMBDA_ARN": "arn:aws:lambda:ap-southeast-2:926078734639:function:ReceiptPrinterMQTTInterface:1",
+      "AWS_GREENGRASS_LAMBDA_CONTAINER_MODE": "{configuration:/containerMode}",
+      "AWS_GREENGRASS_LAMBDA_FUNCTION_HANDLER": "index.handler",
+      "AWS_GREENGRASS_LAMBDA_ARTIFACT_PATH": "{artifacts:path}",
+      "AWS_GREENGRASS_LAMBDA_CONTAINER_PARAMS": "{configuration:/containerParams}",
+      "AWS_GREENGRASS_LAMBDA_STATUS_TIMEOUT_SECONDS": "{configuration:/statusTimeoutInSeconds}",
+      "AWS_GREENGRASS_LAMBDA_ENCODING_TYPE": "{configuration:/inputPayloadEncodingType}",
+      "AWS_GREENGRASS_LAMBDA_PARAMS": "{configuration:/lambdaExecutionParameters}",
+      "AWS_GREENGRASS_LAMBDA_RUNTIME_PATH": "{aws.greengrass.LambdaRuntimes:artifacts:decompressedPath}/runtime/",
+      "AWS_GREENGRASS_LAMBDA_EXEC_ARGS": "[\"nodejs12.x\",\"/runtime/nodejs/lambda_nodejs_runtime.js\",\"--handler=index.handler\"]",
+      "AWS_GREENGRASS_LAMBDA_RUNTIME": "nodejs12.x"
+    },
+    "shutdown": {
+      "requiresPrivilege": true,
+      "script": "{aws.greengrass.LambdaLauncher:artifacts:path}/lambda-launcher stop; {aws.greengrass.LambdaLauncher:artifacts:path}/lambda-launcher clean"
+    }
+  }
+}

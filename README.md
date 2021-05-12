@@ -65,6 +65,7 @@ https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
 
 ## Directory Structure
 
+todo add ReceiptPrinterMQTTInterface-component.yaml and deployment.yaml
 ```
 ├── artifacts/
 │   │ The software artifacts for the Greengrass components, one subdir per component. The contents
@@ -126,3 +127,43 @@ r+Salt%3C%2Fh3%3E%3C%2Fcenter%3E++++%3Ccenter%3E+%3Ch4%3EOrder+and+Collect%3C%2F
 94%3C%2Fleft%3E+++++%3Cleft%3EName%3A+Sharon+Newman%3C%2Fleft%3E++++%3Ccenter%3E+Powered+by+DataPOS\
 +%3C%2Fcenter%3E+%22%7D'
 ```
+
+## Deploying
+
+### For Development
+
+todo
+
+AWS doesn't seem to support deploying Lambda components locally, so you have to use the production
+instructions for ReceiptPrinterMQTTInterface unfortunately.
+
+### For Production
+
+todo finish this
+todo write a script for this
+
+1. Create the ReceiptPrinterMQTTInterface Lambda function in AWS.
+1. Edit `ReceiptPrinterMQTTInterface-component.yaml` and set `lambdaArn` to the ARN of the function
+   you created.
+1. Create/update the component in Greengrass. Take note of the `componentVersion` it prints out.
+   ```
+   aws greengrassv2 create-component-version \
+       --cli-input-yaml file://ReceiptPrinterMQTTInterface-component.yaml
+   ```
+1. Check its `componentState` until it's `DEPLOYABLE`.
+   ```
+   aws greengrassv2 describe-component --arn [Your function's ARN]
+   ```
+1. Edit `deployment.yaml`:
+   1. Set `targetArn` to the ARN of your Thing Group.
+   1. Set the `componentVersion` for `io.datapos.ReceiptPrinterMQTTInterface` to the new version you
+      created.
+1. Create/update the deployment in Greengrass.
+   ```
+   aws greengrassv2 create-deployment --cli-input-yaml file://deployment.yaml
+   ```
+
+You can check the progress of the deployment in the AWS Console. To check the progress on a
+particular device, run `aws greengrassv2 list-installed-components --core-device-thing-name [thing
+name]` to see the version numbers of the components currently deployed to it. Or run `sudo
+/greengrass/v2/bin/greengrass-cli component list` on the device itself.

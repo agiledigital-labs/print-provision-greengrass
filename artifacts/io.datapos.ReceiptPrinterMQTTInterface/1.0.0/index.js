@@ -1,4 +1,3 @@
-//const ggSdk = require('greengrass-core-sdk');
 const axios = require('axios');
 
 // todo use qos exactly_once so the app code doesn't have to track job ids and discard duplicates
@@ -22,6 +21,8 @@ const axios = require('axios');
 // todo when you make a new version of the component in AWS, you need to configure it to receive
 //      MQTT events for topic "print-job/${AWS_IOT_THING_NAME}". it's not documented, but the env
 //      var does seem to get substituted
+// todo write scripts to create the GG components
+// todo write a script to create the GG deployment for the Pis
 
 // todo use version configured in GG recipe instead. check if we actually need this in the logs
 //      first (and whatever it was doing with the health check). probably don't
@@ -54,20 +55,21 @@ exports.handler = async (event, context) => {
   // todo do we actually need to append the req id ourselves or can aws correlate the messages some
   //      other way?
   const log = message =>
-    console.log(`${message} RequestId: [${event.awsRequestId}].`);
+    console.log(`${message} RequestId: [${context.awsRequestId}]`);
 
   // todo submit the job to the http interface. don't forget id
   // todo just log the size of .data
   log(`Received print job with ID [${event.id}], size [${event.data}]. Submitting it to ReceiptPrinter.`);
 
   const params = new URLSearchParams();
-  params.append('id', event.id);
+  params.append('remoteJobId', event.id);
   params.append('data', event.data);
 
   const response = await axios.post(`${httpInterfaceBaseUrl}/submit`, params);
 
   // todo delete
-  console.log(`response: ${JSON.stringify(response)}`);
+  console.log(`response status: ${JSON.stringify(response.status)}`);
+  console.log(`response data: ${JSON.stringify(response.data)}`);
 
   if (response.status === 200 && response.data.pass) {
     log(`Submitted print job [${event.id}]`);
