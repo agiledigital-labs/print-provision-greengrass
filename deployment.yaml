@@ -11,7 +11,7 @@ components:
     componentVersion: 2.1.0
   io.datapos.ReceiptPrinterMQTTInterface:
     # Update this when deploying a new version.
-    componentVersion: 9.2.0
+    componentVersion: 10.0.0
     # This resets ReceiptPrinterMQTTInterface's configuration to the new defaults.
     configurationUpdate:
       reset:

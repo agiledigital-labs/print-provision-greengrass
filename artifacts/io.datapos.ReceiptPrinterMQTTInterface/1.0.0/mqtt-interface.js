@@ -1,17 +1,6 @@
 const axios = require('axios');
 const awsIot = require('aws-iot-device-sdk');
 
-// todo use qos exactly_once so the app code doesn't have to track job ids and discard duplicates
-//      actually, printos-serverless-service has retry logic, so that wouldn't work. maybe just
-//      delete its retry logic. but then, will the message be retried if the print job fails halfway
-//      through? is a lambda invocation atomic wrt mqtt retries?
-// todo need to update the device shadow? probably depends on whether we still need the server code
-//      for status reporting (hc.sh?). if not, delete the server code too eventually?
-// todo add the http interface to "component dependencies". and http should probably depend on
-//      receiptprinter
-// todo write scripts to create the GG components
-// todo write a script to create the GG deployment for the Pis
-
 // todo use version configured in GG recipe instead. check if we actually need this in the logs
 //      first (and whatever it was doing with the health check). probably don't
 const serviceVersion = '0.2.0';
@@ -19,13 +8,13 @@ const serviceVersion = '0.2.0';
 /** The URL for the ReceiptPrinterHTTPInterface component. */
 const httpInterfaceBaseUrl = 'http://localhost:8083';
 
-// todoc comment
+/** The name of this IoT Thing (i.e. device, e.g. a Raspberry Pi) in AWS. */
 const thingName = process.env.AWS_IOT_THING_NAME;
 
 // MQTT topic used to receive new print jobs.
 const printJobTopic = `print-job/${thingName}`;
 
-/** todoc */
+/** The config needed to connect to AWS IoT's MQTT broker. */
 const deviceOptions = (clientId) => ({
   clientId,
   // todo hardcoded paths
@@ -49,9 +38,6 @@ const deviceOptions = (clientId) => ({
 const logMessage = (status, message, printJobId) => {
   console.log(`${serviceVersion}|${status}|${new Date().toISOString()}|${printJobId}|${message}`);
 };
-
-// todo delete
-console.log(JSON.stringify(process.env));
 
 /** Submit the job to be printed (via the HTTP interface). */
 const submitPrintJob = async (id, data) => {
@@ -82,9 +68,12 @@ const submitPrintJob = async (id, data) => {
 };
 
 const main = () => {
+  // Log the environment vars.
+  console.log(JSON.stringify(process.env));
+
   const device = new awsIot.device(deviceOptions(`${thingName}-device`));
 
-  // Subscribes the print job topic for this device.
+  // Subscribe to the print job topic for this device.
   device.subscribe(printJobTopic);
  
   // Log when MQTT connects or disconnects.
@@ -99,8 +88,11 @@ const main = () => {
   // Handle the MQTT messages, which each contain a print job.
   device.on('message', (topic, payload) => {
     if (topic === printJobTopic) {
+      // Parse the message.
       const parsedPayload = JSON.parse(payload.toString());
-      const { id, data, copyOfJob } = parsedPayload;
+      const { id, data } = parsedPayload;
+
+      // Send the print job along to be printed.
       submitPrintJob(id, data);
     } else {
       logMessage('Success',
