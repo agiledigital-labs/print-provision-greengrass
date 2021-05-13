@@ -10,6 +10,7 @@ Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot
  - todo is there anything we should copy from the print-provision repo's README?
  - todo document how greengrass handles health checking
  - todo document how to manage the devices using greengrass
+ - todo `nvm use` and `npm install` for the components that need that
  - todo document how to set up a pi from scratch, install greengrass, etc. see greengrass docs.
         - maybe link to them
         - need to explain/link the minimal installer policy?
@@ -133,6 +134,9 @@ r+Salt%3C%2Fh3%3E%3C%2Fcenter%3E++++%3Ccenter%3E+%3Ch4%3EOrder+and+Collect%3C%2F
 ### For Development
 
 todo
+
+If you've deployed a component through AWS (i.e. not locally), you'll need to remove it before
+deploying a different version of it locally.
 
 AWS doesn't seem to support deploying Lambda components locally, so you have to use the production
 instructions for ReceiptPrinterMQTTInterface unfortunately.

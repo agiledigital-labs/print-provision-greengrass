@@ -10,14 +10,11 @@
 
 // todo auto npm install? just put it in the README?
 
-
-// todo are all these deps still required?
 const express = require('express');
 const axios = require('axios');
 const awsIot = require('aws-iot-device-sdk');
 const bodyParser = require('body-parser');
 const fp = require('lodash/fp');
-const uuid = require('uuid');
 const urlencode = require('urlencode');
 const argsParser = require('args-parser');
 
@@ -28,11 +25,14 @@ const args = argsParser(process.argv);
 //      first (and whatever it was doing with the health check). probably don't
 const serviceVersion = '0.2.0';
 
+const healthHeartBeatInterval = 60 * 1000;
+
 // todoc comments for these
 const thingName = process.env.AWS_IOT_THING_NAME;
 const printServerUrl = args['print-server-url'];
-// todo use or delete this
-const destinationPassword = args['destination-password'];
+const dataposApiUrl = args['datapos-api-url'];
+const vendorUsername = args['vendor-username'];
+const vendorPassword = args['vendor-password'];
 
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -100,12 +100,12 @@ const logMessage = (status, message, printJobId) => {
 };
 
 /**
- * Register the Thing Shadow, which records the most recent print status for the device.
+ * Create and register the Thing Shadow, which records the most recent print status for the device.
  *
  * The Thing Shadow document can be checked in the AWS IoT Thing console. It will likely be under
  * the name "Classic Shadow".
  */
-const deviceStart = () => {
+const setUpThingShadow = () => {
   try {  
     // Device thing shadow that reports the device current print status.
     thingShadow = new awsIot.thingShadow(deviceOptions(`${thingName}-shadow`));
@@ -170,9 +170,8 @@ app.post('/lookup', (_req, res) => {
   });
 });
 
-// todo check slack msgs from haolin about this and add more info/context to these comments, e.g.
+// todoc check slack msgs from haolin about this and add more info/context to these comments, e.g.
 //      explain why we need this and what it's currently being used for
-// todo move local job code into a separate file? a separate component?
 // Called by local only and update the print job remotely.
 // Updates the remote print job status, so it will not be retried.
 app.post('/update', async (req, res) => {
@@ -255,7 +254,6 @@ app.post('/update', async (req, res) => {
   }
 });
 
-// todo remove manual health check?
 // todo check whether greengrass fully replaces manual health check functionality
 // todo what should we do with the server end of the health check? just delete it? is it used for
 //      anything else? probably talk to haolin about it
@@ -263,14 +261,8 @@ app.post('/update', async (req, res) => {
 // todo need to create a policy for each device like provision.js does?
 // todo does stdout and stderr from this app and from PrintOS.jar end up in the right place
 //      (somewhere in AWS, i assume)
-// todo try using an on-demand lambda that runs when the device receives an MQTT message:
-//      https://docs.aws.amazon.com/greengrass/v2/developerguide/import-lambda-function-console.html#import-lambda-console-configure-function-parameters
-//      not sure what to do with the local HTTP print server stuff then, though. maybe split that
-//      out into a separate GG component?
-// todo make print-greengrass a branch of print-provision instead of a separate repo. (won't lose
-//      the history that way)
-const startHealthCheck = async () => {
-  try{ 
+const reportHealthCheck = async () => {
+  try { 
     console.log('Reporting health...');
 
     // Allow auth cookies to be passed.
@@ -278,34 +270,35 @@ const startHealthCheck = async () => {
       withCredentials: true
     });
 
-    const dataposApiUrl = args.dataposApiUrl;
-    const vendorUsername = args.vendorUsername;
-    const vendorPassword = args.vendorPassword;
-
     const params = new URLSearchParams();
     params.append('username', vendorUsername);
     params.append('password', vendorPassword);
+    // todo delete
+    console.log(`vendorUsername: ${vendorUsername}`);
+    console.log(`vendorPassword: ${vendorPassword}`);
+    console.log(`dataposApiUrl: ${dataposApiUrl}`);
 
     const response = await axios.post(`${dataposApiUrl}/v1/current-vendor/login`, params);
 
     const authCookie = response.headers['set-cookie'][0];
 
-    const hcResponse = await axios.post(`${dataposApiUrl}/v1/current-vendor/external-service/status`, {
-      externalService: {
-        serviceVendorUser: vendorUsername,
-        serviceType: `print-${thingName}`,
-        serviceVersion: serviceVersion
-      },
-      status: lastHealthStatus.status,
-      message: lastHealthStatus.message,
-      lastSuccessId: lastHealthStatus.printJobId && lastHealthStatus.printJobId.toString(),
-      lastSuccessTime: new Date().toISOString()
-    }, {
-      headers: {
-        Cookie: authCookie,
-        'Content-Type': 'application/json'
-      }
-    });
+    // todo this is failing with 400
+    // const hcResponse = await axios.post(`${dataposApiUrl}/v1/current-vendor/external-service/status`, {
+    //   externalService: {
+    //     serviceVendorUser: vendorUsername,
+    //     serviceType: `print-${thingName}`,
+    //     serviceVersion: serviceVersion
+    //   },
+    //   status: lastHealthStatus.status,
+    //   message: lastHealthStatus.message,
+    //   lastSuccessId: lastHealthStatus.printJobId && lastHealthStatus.printJobId.toString(),
+    //   lastSuccessTime: new Date().toISOString()
+    // }, {
+    //   headers: {
+    //     Cookie: authCookie,
+    //     'Content-Type': 'application/json'
+    //   }
+    // });
   } catch (err) {
     console.error('Failed to report health', err.message);
     console.error(err);
@@ -315,41 +308,18 @@ const startHealthCheck = async () => {
   }
 };
 
-const healthHeartBeatInterval = 60 * 1000;
+const main = () => {
+  // todo delete
+  console.log(JSON.stringify(process.env));
 
-// todo delete this (pretty sure). make the server robust to network drop outs? local jobs should
-//      still work while offline, right?
-const checkInternetAndStart = () => {
-  // Check for internet before we start the device connection.
-  require('dns').resolve('www.google.com', (err) => {
-    if (err) {
-      console.log('No internet connection', err);
+  // See https://docs.aws.amazon.com/iot/latest/developerguide/iot-device-shadows.html
+  setUpThingShadow();
 
-      // Wait and check again.
-      setTimeout(checkInternetAndStart, 3000);
-    } else {
-      console.log('Internet is connected');
+  // Report the device's health every healthHeartBeatInterval ms.
+  setInterval(reportHealthCheck, healthHeartBeatInterval);
 
-      setInterval(startHealthCheck, healthHeartBeatInterval);
-
-      // Start the device for jobs.
-      deviceStart();
-    }
-  });
+  // Start the HTTP server.
+  app.listen(8083);
 };
 
-// todo delete
-console.log(JSON.stringify(process.env));
-
-// todo delete. systemd won't start greengrass until network is up (not necessarily connected
-//      though). haven't seen an explanation for why the device needed 10 seconds to "settle"
-//      before.
-// Delay 10 seconds before start this for system to settle down.
-//const startDelay = 10 * 1000;
-
-//setTimeout(checkInternetAndStart, startDelay);
-// Start the device for jobs.
-deviceStart();
-
-// Start the server.
-app.listen(8083);
+main();

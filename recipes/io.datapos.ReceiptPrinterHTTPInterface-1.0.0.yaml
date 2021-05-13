@@ -9,7 +9,10 @@ ComponentConfiguration:
     # todoc comment
     printServerUrl: https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev
     # todoc comment
-    destinationPassword: blueberry
+    dataposApiUrl: https://public-api.shared.staging.datapos.io
+    # todoc comment
+    vendorUsername: brod
+    vendorPassword: 1234
 Manifests:
 - Platform:
     os: linux
@@ -17,4 +20,6 @@ Manifests:
     Run: |
       node {artifacts:path}/http-interface.js \
         --print-server-url='{configuration:/printServerUrl}' \
-        --destination-password='{configuration:/destinationPassword}'
+        --datapos-api-url='{configuration:/dataposApiUrl}' \
+        --vendor-username='{configuration:/vendorUsername}' \
+        --vendor-password='{configuration:/vendorPassword}'
