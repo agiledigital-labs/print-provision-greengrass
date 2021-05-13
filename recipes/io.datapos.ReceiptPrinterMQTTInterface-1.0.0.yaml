@@ -1,0 +1,16 @@
+---
+RecipeFormatVersion: '2020-01-25'
+ComponentName: io.datapos.ReceiptPrinterMQTTInterface
+ComponentVersion: '1.0.0'
+ComponentDescription: |
+  Receives print jobs from the cloud print server (printos-serverless-service) through MQTT.
+ComponentPublisher: DataPOS
+# todo add a dependency on ReceiptPrinterHTTPInterface?
+ComponentConfiguration:
+  DefaultConfiguration:
+Manifests:
+- Platform:
+    os: linux
+  Lifecycle:
+    Run: |
+      node {artifacts:path}/mqtt-interface.js

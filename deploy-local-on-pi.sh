@@ -68,14 +68,10 @@ if [[ "$deploy_http_interface" == "true" ]]; then
 fi
 
 if [[ "$deploy_mqtt_interface" == "true" ]]; then
-    # todo the recipe has my account id hardcoded in AWS_GREENGRASS_LAMBDA_ARN. the lambda fails
-    #      mysteriously otherwise
     # todo probably need this first if already deployed through aws
     #      sudo /greengrass/v2/bin/greengrass-cli deployment create --remove \
     #      io.datapos.ReceiptPrinterMQTTInterface --groupId thinggroup/MyGreengrassCoreGroup
     #      might need similar for the other components too
-    echo "WARNING: We're not sure whether ReceiptPrinterMQTTInterface can actually be deployed\
- locally. This might not work."
     (set -x;
         sudo /greengrass/v2/bin/greengrass-cli deployment create \
                 --remove "io.datapos.ReceiptPrinterMQTTInterface"

@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "aws-iot-device-sdk": "^2.2.6",
     "axios": "^0.21.1"
   }
 }

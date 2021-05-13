@@ -66,7 +66,7 @@ https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
 
 ## Directory Structure
 
-todo add ReceiptPrinterMQTTInterface-component.yaml and deployment.yaml
+todo add deployment.yaml
 ```
 ├── artifacts/
 │   │ The software artifacts for the Greengrass components, one subdir per component. The contents
@@ -144,11 +144,9 @@ instructions for ReceiptPrinterMQTTInterface unfortunately.
 ### For Production
 
 todo finish this
-todo write a script for this
+todo write a script for this. maybe use GGP. not sure it supports GGv2 yet though
 
-1. Create the ReceiptPrinterMQTTInterface Lambda function in AWS.
-1. Edit `ReceiptPrinterMQTTInterface-component.yaml` and set `lambdaArn` to the ARN of the function
-   you created.
+1. todo update the step below to use the recipes instead
 1. Create/update the component in Greengrass. Take note of the `componentVersion` it prints out.
    ```
    aws greengrassv2 create-component-version \
