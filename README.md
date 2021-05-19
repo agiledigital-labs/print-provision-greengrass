@@ -78,7 +78,6 @@ https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
 
 ## Directory Structure
 
-todo add deployment.yaml
 ```
 ├── artifacts/
 │   │ The software artifacts for the Greengrass components, one subdir per component. The contents
@@ -90,14 +89,21 @@ todo add deployment.yaml
 │   │     ReceiptPrinterMQTTInterface.
 │   └── io.datapos.ReceiptPrinterMQTTInterface/
 │         Receives remote (internet) print jobs from AWS through MQTT.
+├── component-artifact-policy.json
+│     Used by deploy.sh when it creates the IAM policy that lets the devices get the artifacts from
+│     S3.
 ├── copy-to-pi.sh
 │     Copies this dir to your test device (RPi) so you can deploy locally for testing.
 ├── deploy-local-on-pi.sh
 │     Deploy locally for testing. Run this on your test device.
+├── deploy.sh
+│     Deploy remotely, i.e. through AWS. Use this for production deployments.
+├── deployment.yaml
+│     Used by deploy.sh. Specifies the components to be deployed, among other things.
 └── recipes/
     │ The config and metadata for the Greengrass components.
     ├── io.datapos.ReceiptPrinterMQTTInterface-1.0.0.yaml
-    ├── todo add http interface here if we actually end up creating that file
+    ├── io.datapos.ReceiptPrinterHTTPInterface-1.0.0.yaml
     └── io.datapos.ReceiptPrinter-1.0.0.yaml
 ```
 
