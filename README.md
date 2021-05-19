@@ -23,17 +23,6 @@ Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot
  - todo document how greengrass handles health checking
  - todo document how to manage the devices using greengrass
  - todo `nvm use` and `npm install` for the components that need that
- - todo document how to set up a pi from scratch, install greengrass, etc. see greengrass docs.
-        - maybe link to them
-        - need to explain/link the minimal installer policy?
-        - how to install the aws cli? only v1 supported on Pi (32-bit)
-        - how to put temp creds on the pi? e.g. 
-          ```
-          (aws sts assume-role --role-arn
-          arn:aws:iam::926078734639:role/greengrass-core-installer --role-session-name
-          "RoleSession1")
-          ```
-          the parens are just to run it in a subshell. it prints the creds
  - todo document this:
         - to deploy the custom component locally to test it, copy to the pi
           ```
@@ -47,6 +36,8 @@ Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot
         - then you can check the logs in /greengrass/v2/logs, e.g.
             `sudo tail -f /greengrass/v2/logs/io.datapos.ReceiptPrinterMQTTInterface.log`
         - it takes a while
+
+![](components.png)
 
 ### Remote Printing Process
 
