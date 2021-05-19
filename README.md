@@ -160,7 +160,49 @@ https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
         --deploy-dev-tools true \
         --setup-system-service true
       ```
-1. To deploy the ReceiptPrinter software to the Raspberry Pi, see the Deploying section below.
+1. Deploy the PrintOS software to the Raspberry Pi by following the Deploying section below.
+
+## Deploying
+
+### For Development
+
+1. If you've deployed any of the components through AWS (i.e. not locally), you'll need to remove
+   them from the device before deploying different versions of them locally.
+   ```
+   sudo /greengrass/v2/bin/greengrass-cli deployment create \
+      --remove io.datapos.ReceiptPrinter,io.datapos.ReceiptPrinterMQTTInterface,io.datapos.ReceiptPrinterHTTPInterface \
+      --groupId thinggroup/ReceiptPrinterGroup
+   ```
+   Then check `sudo /greengrass/v2/bin/greengrass-cli component list` until they're removed from the
+   list.
+1. Copy the project directory to your Raspberry Pi by running `copy-to-pi.sh` (or some other way).
+   `copy-to-pi.sh` assumes its hostname will be `raspberrypi.local`, so you'll need to edit it if
+   you've changed that.
+1. Run `deploy-local-on-pi.sh` from the project directory on the device.
+
+### For Production
+
+1. Edit `deployment.yaml`:
+   1. Set `targetArn` to the ARN of your Thing Group.
+   1. Change the `componentVersion` fields if you want to deploy different versions of the
+      components. If you do, you currently need to change the version numbers in the `main` function
+      of `deploy.sh` as well.
+1. Run `deploy.sh`. Run it with no args first to see the instructions.
+
+You can check the progress of the deployment in the AWS Console.
+
+To check the progress on a particular device, you can watch the logs from the deployment by running
+this on the device:
+
+```
+sudo tail --follow=name /greengrass/v2/logs/greengrass.log
+```
+
+Or you can run (from any machine) `aws greengrassv2 list-installed-components
+--core-device-thing-name [thing name]` to see the version numbers of the components currently
+deployed to it. The thing name will be "ReceiptPrinterPi" if you followed the example above. Or run
+`sudo /greengrass/v2/bin/greengrass-cli component list` on the device itself to get a list with more
+useful details.
 
 ## Troubleshooting
 
@@ -213,45 +255,3 @@ r+Salt%3C%2Fh3%3E%3C%2Fcenter%3E++++%3Ccenter%3E+%3Ch4%3EOrder+and+Collect%3C%2F
 94%3C%2Fleft%3E+++++%3Cleft%3EName%3A+Sharon+Newman%3C%2Fleft%3E++++%3Ccenter%3E+Powered+by+DataPOS\
 +%3C%2Fcenter%3E+%22%7D'
 ```
-
-## Deploying
-
-### For Development
-
-1. If you've deployed any of the components through AWS (i.e. not locally), you'll need to remove
-   them from the device before deploying different versions of them locally.
-   ```
-   sudo /greengrass/v2/bin/greengrass-cli deployment create \
-      --remove io.datapos.ReceiptPrinter,io.datapos.ReceiptPrinterMQTTInterface,io.datapos.ReceiptPrinterHTTPInterface \
-      --groupId thinggroup/ReceiptPrinterGroup
-   ```
-   Then check `sudo /greengrass/v2/bin/greengrass-cli component list` until they're removed from the
-   list.
-1. Copy the project directory to your Raspberry Pi by running `copy-to-pi.sh` (or some other way).
-   `copy-to-pi.sh` assumes its hostname will be `raspberrypi.local`, so you'll need to edit it if
-   you've changed that.
-1. Run `deploy-local-on-pi.sh` from the project directory on the device.
-
-### For Production
-
-1. Edit `deployment.yaml`:
-   1. Set `targetArn` to the ARN of your Thing Group.
-   1. Change the `componentVersion` fields if you want to deploy different versions of the
-      components. If you do, you currently need to change the version numbers in the `main` function
-      of `deploy.sh` as well.
-1. Run `deploy.sh`. Run it with no args first to see the instructions.
-
-You can check the progress of the deployment in the AWS Console.
-
-To check the progress on a particular device, you can watch the logs from the deployment by running
-this on the device:
-
-```
-sudo tail --follow=name /greengrass/v2/logs/greengrass.log
-```
-
-Or you can run (from any machine) `aws greengrassv2 list-installed-components
---core-device-thing-name [thing name]` to see the version numbers of the components currently
-deployed to it. The thing name will be "ReceiptPrinterPi" if you followed the example above. Or run
-`sudo /greengrass/v2/bin/greengrass-cli component list` on the device itself to get a list with more
-useful details.
