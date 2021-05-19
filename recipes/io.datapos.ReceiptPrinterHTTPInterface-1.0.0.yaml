@@ -12,14 +12,18 @@ ComponentConfiguration:
     dataposApiUrl: https://public-api.shared.staging.datapos.io
     # todoc comment
     vendorUsername: brod
-    vendorPassword: 1234
+    vendorPassword: '1234'
 Manifests:
-- Platform:
-    os: linux
-  Lifecycle:
-    Run: |
-      node {artifacts:path}/http-interface.js \
-        --print-server-url='{configuration:/printServerUrl}' \
-        --datapos-api-url='{configuration:/dataposApiUrl}' \
-        --vendor-username='{configuration:/vendorUsername}' \
-        --vendor-password='{configuration:/vendorPassword}'
+  - Platform:
+      os: linux
+    Artifacts:
+      # "S3_BUCKET_NAME" will be replaced by deploy.sh.
+      - URI: s3://S3_BUCKET_NAME/artifacts/io.datapos.ReceiptPrinterHTTPInterface/1.0.0/artifact.zip
+        Unarchive: ZIP
+    Lifecycle:
+      Run: |
+        node {artifacts:decompressedPath}/artifact/http-interface.js \
+          --print-server-url='{configuration:/printServerUrl}' \
+          --datapos-api-url='{configuration:/dataposApiUrl}' \
+          --vendor-username='{configuration:/vendorUsername}' \
+          --vendor-password='{configuration:/vendorPassword}'

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+# todo this is probably broken now because i made deploy.sh work
+
 #
 # deploy-local-on-pi.sh
 #
@@ -18,8 +20,6 @@
 #  -m Deploy the io.datapos.ReceiptPrinterMQTTInterface component.
 #  The default (i.e. no opts) is to deploy all components.
 #
-
-# todo add ReceiptPrinterMQTTInterface to this script
 
 # Check this script is running on the Pi.
 function fail {

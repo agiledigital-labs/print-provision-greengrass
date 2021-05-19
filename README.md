@@ -1,6 +1,18 @@
-# PrintOS Something todo name
+# PrintOS Receipt Printer Device Software
 
-See <https://jira.agiledigital.com.au/browse/QFXFB-888>.
+This repo contains
+
+ - the software that runs on PrintOS devices, and
+ - the config files and script used to set up the AWS Greengrass service for managing the devices.
+
+A PrintOS device is a computer, usually a Raspberry Pi, running at a vendor's store, connected to
+the internet and to a receipt printer. It can also be connected to local PotatOS point-of-sale
+devices.
+
+It receives print jobs from the POS devices when patrons place orders in person and from the
+internet when patrons place orders online.
+
+See <https://jira.agiledigital.com.au/browse/QFXFB-888> for more details.
 
 Based on <https://github.com/DataPOS-Labs/print-provision>. Runs in [AWS
 Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html).
@@ -89,31 +101,101 @@ todo add deployment.yaml
     └── io.datapos.ReceiptPrinter-1.0.0.yaml
 ```
 
+## Setting Up a Raspberry Pi
+
+1. Write Raspberry Pi OS (previously known as Raspian) to the SD card. I used Raspberry Pi Imager
+   v1.6.1 to write `2021-03-04-raspios-buster-armhf-lite.img`.
+1. [Enable SSH](https://www.raspberrypi.org/documentation/remote-access/ssh/). (See item 3.)
+   ```
+   touch /path/to/mounted/sd/card/boot/ssh
+   ```
+1. [Set up WiFi](https://www.raspberrypi.org/documentation/configuration/wireless/headless.md) if
+   needed.
+1. You might want to change its mDNS hostname if there will be other Raspberry Pis on the network.
+   I'm not sure whether that can be done before the first boot. By default, the hostname will be
+   `raspberrypi.local`.
+1. Unmount the SD card and boot the Raspberry Pi with it.
+1. SSH into it. The default password is `raspberry`.
+   ```
+   ssh pi@raspberrypi.local
+   ```
+1. Run `passwd` to change the password for the `pi` user. TODO: Can we do this more securely by
+   editing `/etc/shadow` before the initial boot?
+1. Install OpenJDK 11 on the Raspberry Pi. For me, this installed version 11.0.11+9-1~deb10u1.
+   ```
+   sudo apt update
+   sudo apt install openjdk-11-jdk
+   ```
+1. Install Node.js 12 on the Raspberry Pi. For me, this installed version 12.22.1-1nodesource1.
+   ```
+   $ sudo su
+   # curl -fsSL https://deb.nodesource.com/setup_12.x | bash -
+   # apt-get install -y nodejs
+   # exit
+   ```
+1. Follow [Install the AWS IoT Greengrass Core
+   software](https://docs.aws.amazon.com/greengrass/v2/developerguide/install-greengrass-core-v2.html)
+   to install the Greengrass Core software on the Raspberry Pi. For me, this installed version
+   2.1.0.
+    - Make a note of the command and options you use when you run `Greengrass.jar`. It's probably
+      worth saving the output, too.
+    - Use `--setup-system-service true` so Greengrass will start on boot.
+    - Use the `ap-southeast-2` region.
+    - Install to the default location, `/greengrass/v2`.
+    - Either use `--tes-role-name ReceiptPrinterGreengrassV2TokenExchangeRole` or edit the
+      `device_role` const in `deploy.sh`.
+    - For example:
+      ```
+      sudo -E java -Droot="/greengrass/v2" -Dlog.store=FILE \
+        -jar ./greengrass-nucleus-latest/lib/Greengrass.jar \
+        --aws-region ap-southeast-2 \
+        --thing-name ReceiptPrinterPi \
+        --thing-group-name ReceiptPrinterGroup \
+        --tes-role-name ReceiptPrinterGreengrassV2TokenExchangeRole \
+        --tes-role-alias-name ReceiptPrinterGreengrassCoreTokenExchangeRoleAlias \
+        --component-default-user ggc_user:ggc_group \
+        --provision true \
+        --deploy-dev-tools true \
+        --setup-system-service true
+      ```
+1. To deploy the ReceiptPrinter software to the Raspberry Pi, see the Deploying section below.
+
+## Troubleshooting
+
+Greengrass writes logs to the directory `/greengrass/v2/logs` on the device, including logs from the
+components.
+
+You can check on the Greengrass Core software with
+
+```
+systemctl status greengrass
+```
+
 ## Testing
 
 For testing, you can configure the ReceiptPrinter component to print to PDF. However, the PDF will
 always be blank, so you still need a real receipt printer to test the output.
 
- 1. Install the print-to-PDF driver on your test device: `sudo apt install cups cups-bsd
-    printer-driver-cups-pdf`
- 1. In `/etc/cups/cups-pdf.conf` on your device, comment out the line `Out ${HOME}/PDF`. That
-    configures the driver to write the PDFs to `/var/spool/cups-pdf/ggc_user` (`ggc_user` is the
-    user the component runs as), which avoids permissions issues.
- 1. Restart CUPS: `sudo systemctl restart cups`
- 1. In [io.datapos.ReceiptPrinter-1.0.0.yaml](recipes/io.datapos.ReceiptPrinter-1.0.0.yaml), change
-    `printer: EPSON_TM-T82III` to `printer: PDF` and redeploy.
+1. Install the print-to-PDF driver on your test device: `sudo apt install cups cups-bsd
+   printer-driver-cups-pdf`
+1. In `/etc/cups/cups-pdf.conf` on your device, comment out the line `Out ${HOME}/PDF`. That
+   configures the driver to write the PDFs to `/var/spool/cups-pdf/ggc_user` (`ggc_user` is the
+   user the component runs as), which avoids permissions issues.
+1. Restart CUPS: `sudo systemctl restart cups`
+1. In [io.datapos.ReceiptPrinter-1.0.0.yaml](recipes/io.datapos.ReceiptPrinter-1.0.0.yaml), change
+   `printer: EPSON_TM-T82III` to `printer: PDF` and redeploy.
 
 ### Submitting a Test Job
 
 In this example, `https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev/submit` is the
 `/submit` endpoint of your
 [printos-serverless-service](https://github.com/DataPOS-Labs/printos-serverless-service) deployment,
-`blueberry` is the password in its DynamoDB and `MyGreengrassCore` is the AWS IoT Thing Name of your
+`blueberry` is the password in its DynamoDB and `ReceiptPrinterPi` is the AWS IoT Thing Name of your
 test device (i.e. your Raspberry Pi).
 
 ```
-curl https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev/submit --data 'destination=MyG\
-reengrassCore&password=blueberry&data=%7B%22mode%22%3A%22tagged%22%2C%22comments%22%3A%22%3Ccenter%\
+curl https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev/submit --data 'destination=Rec\
+eiptPrinterPi&password=blueberry&data=%7B%22mode%22%3A%22tagged%22%2C%22comments%22%3A%22%3Ccenter%\
 3E+Powered+by+DataPOS+%3C%2Fcenter%3E+%3Ccenter%3E+Powered+by+DataPOS+%3C%2Fcenter%3E+%3Ccenter%3E+\
 %3Ch3%3ETime+Ordered%3A%3C%2Fh3%3E+%3C%2Fcenter%3E+%3Ccenter%3E+%3Ch3%3E+2%2F05%2F21+2%3A23+PM+%3C%\
 2Fh3%3E+%3C%2Fcenter%3E+%3Cleft%3EService+Mode%3A+TakeAway%3C%2Fleft%3E+++++%3Cleft%3E+%3Ch3%3E1+Br\
@@ -144,28 +226,25 @@ instructions for ReceiptPrinterMQTTInterface unfortunately.
 ### For Production
 
 todo finish this
-todo write a script for this. maybe use GGP. not sure it supports GGv2 yet though
 
-1. todo update the step below to use the recipes instead
-1. Create/update the component in Greengrass. Take note of the `componentVersion` it prints out.
-   ```
-   aws greengrassv2 create-component-version \
-       --cli-input-yaml file://ReceiptPrinterMQTTInterface-component.yaml
-   ```
-1. Check its `componentState` until it's `DEPLOYABLE`.
-   ```
-   aws greengrassv2 describe-component --arn [Your function's ARN]
-   ```
 1. Edit `deployment.yaml`:
    1. Set `targetArn` to the ARN of your Thing Group.
-   1. Set the `componentVersion` for `io.datapos.ReceiptPrinterMQTTInterface` to the new version you
-      created.
-1. Create/update the deployment in Greengrass.
-   ```
-   aws greengrassv2 create-deployment --cli-input-yaml file://deployment.yaml
-   ```
+   1. Change the `componentVersion` fields if you want to deploy different versions of the
+      components. If you do, you currently need to change the version numbers in the `main` function
+      of `deploy.sh` as well.
+1. Run `deploy.sh`. Run it with no args first to see the instructions.
 
-You can check the progress of the deployment in the AWS Console. To check the progress on a
-particular device, run `aws greengrassv2 list-installed-components --core-device-thing-name [thing
-name]` to see the version numbers of the components currently deployed to it. Or run `sudo
-/greengrass/v2/bin/greengrass-cli component list` on the device itself.
+You can check the progress of the deployment in the AWS Console.
+
+To check the progress on a particular device, you can watch the logs from the deployment by running
+this on the device:
+
+```
+sudo tail --follow=name /greengrass/v2/logs/greengrass.log
+```
+
+Or you can run (from any machine) `aws greengrassv2 list-installed-components
+--core-device-thing-name [thing name]` to see the version numbers of the components currently
+deployed to it. The thing name will be "ReceiptPrinterPi" if you followed the example above. Or run
+`sudo /greengrass/v2/bin/greengrass-cli component list` on the device itself to get a list with more
+useful details.

@@ -3,20 +3,24 @@ RecipeFormatVersion: '2020-01-25'
 ComponentName: io.datapos.ReceiptPrinter
 ComponentVersion: '1.0.0'
 ComponentDescription: |
-  Polls io.datapos.ReceiptPrinterHTTPInterface for print jobs, then formats and prints them.
+  Polls ReceiptPrinterHTTPInterface for print jobs, then formats and prints them.
 ComponentPublisher: DataPOS
 ComponentConfiguration:
   DefaultConfiguration:
-    printer: EPSON_TM-T82III
     # See README.md.
-    #printer: PDF
+    #printer: EPSON_TM-T82III
+    printer: PDF
     destinationPassword: blueberry
 Manifests:
-- Platform:
-    os: linux
-  Lifecycle:
-    Setenv:
-      ARTIFACTS_PATH: '{artifacts:path}'
-      RECEIPT_PRINTER: '{configuration:/printer}'
-      DESTINATION_PASSWORD: '{configuration:/destinationPassword}'
-    Run: '{artifacts:path}/run.sh'
+  - Platform:
+      os: linux
+    Artifacts:
+      # "S3_BUCKET_NAME" will be replaced by deploy.sh.
+      - URI: s3://S3_BUCKET_NAME/artifacts/io.datapos.ReceiptPrinter/1.0.0/artifact.zip
+        Unarchive: ZIP
+    Lifecycle:
+      Setenv:
+        ARTIFACTS_PATH: '{artifacts:decompressedPath}/artifact'
+        RECEIPT_PRINTER: '{configuration:/printer}'
+        DESTINATION_PASSWORD: '{configuration:/destinationPassword}'
+      Run: 'bash {artifacts:decompressedPath}/artifact/run.sh'

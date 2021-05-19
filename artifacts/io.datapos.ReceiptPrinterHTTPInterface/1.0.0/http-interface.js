@@ -25,10 +25,13 @@ const args = argsParser(process.argv);
 //      first (and whatever it was doing with the health check). probably don't
 const serviceVersion = '0.2.0';
 
+/** The duration in milliseconds between reporting the device status to core-services. */
 const healthHeartBeatInterval = 60 * 1000;
 
-// todoc comments for these
+/** The name of this IoT Thing (i.e. device, e.g. a Raspberry Pi) in AWS. */
 const thingName = process.env.AWS_IOT_THING_NAME;
+
+// todoc comments for these
 const printServerUrl = args['print-server-url'];
 const dataposApiUrl = args['datapos-api-url'];
 const vendorUsername = args['vendor-username'];

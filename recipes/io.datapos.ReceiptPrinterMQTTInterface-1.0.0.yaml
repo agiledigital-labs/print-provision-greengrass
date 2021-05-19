@@ -8,8 +8,14 @@ ComponentPublisher: DataPOS
 ComponentConfiguration:
   DefaultConfiguration:
 Manifests:
-- Platform:
-    os: linux
-  Lifecycle:
-    Run: |
-      node {artifacts:path}/mqtt-interface.js
+  - Platform:
+      os: linux
+    Artifacts:
+      # "S3_BUCKET_NAME" will be replaced by deploy.sh.
+      - URI: s3://S3_BUCKET_NAME/artifacts/io.datapos.ReceiptPrinterMQTTInterface/1.0.0/artifact.zip
+        Unarchive: ZIP
+    Lifecycle:
+      # todo deploy-local-on-pi.sh will need to create artifact.zip first now. see:
+      # ctrl-f for "When you develop a component with an archive artifact on a local core device" in
+      # https://docs.aws.amazon.com/greengrass/v2/developerguide/component-recipe-reference.html
+      Run: node {artifacts:decompressedPath}/artifact/mqtt-interface.js

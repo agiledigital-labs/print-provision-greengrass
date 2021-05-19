@@ -1,7 +1,6 @@
 ---
-targetArn: arn:aws:iot:ap-southeast-2:926078734639:thinggroup/MyGreengrassCoreGroup
-# todo change the name?
-deploymentName: Receipt Printer Pis
+targetArn: arn:aws:iot:ap-southeast-2:926078734639:thinggroup/ReceiptPrinterGroup
+deploymentName: ReceiptPrinterDeployment
 components:
   aws.greengrass.Cli:
     componentVersion: 2.1.0
@@ -9,10 +8,18 @@ components:
     componentVersion: 2.1.0
   aws.greengrass.Nucleus:
     componentVersion: 2.1.0
-  io.datapos.ReceiptPrinterMQTTInterface:
-    # Update this when deploying a new version.
-    componentVersion: 10.0.0
-    # This resets ReceiptPrinterMQTTInterface's configuration to the new defaults.
+    # To enable debug logging for the Nucleus:
+    # configurationUpdate:
+    #   merge: "{ \"logging\": { \"level\": \"DEBUG\" } }"
+  io.datapos.ReceiptPrinter:
+    componentVersion: 1.0.0
     configurationUpdate:
-      reset:
-        - ""
+      # Set the name of the printer for it to use.
+      merge: "{ \"printer\": \"PDF\" }"
+      # To reset a component's configuration to the new defaults:
+      # reset:
+      #   - ""
+  io.datapos.ReceiptPrinterHTTPInterface:
+    componentVersion: 1.0.0
+  io.datapos.ReceiptPrinterMQTTInterface:
+    componentVersion: 1.0.0
