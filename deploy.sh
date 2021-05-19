@@ -127,7 +127,8 @@ function create_artifact_policy {
         # Make the policy.
         echo "Creating IAM policy for the devices to read from S3"
 
-        local policy_arn=$( \
+        local policy_arn
+        policy_arn=$( \
             aws iam create-policy \
                 --policy-name "$device_policy" \
                 --policy-document "file://$work_dir/component-artifact-policy.json" \
@@ -181,7 +182,7 @@ function create_component_in_greengrass {
     local component_version="$2"
 
     # Upload the component's artifacts (i.e. files) to S3 so the devices can get them.
-    upload_artifacts_to_s3 $component_name $component_version
+    upload_artifacts_to_s3 "$component_name" "$component_version"
 
     # Make a copy of the component's recipe file and insert the name of the S3 bucket we're using.
     recipe_filename="$component_name-$component_version.yaml"
@@ -192,13 +193,15 @@ function create_component_in_greengrass {
     # Create the component.
     echo "Creating component $component_name version $component_version in Greengrass"
 
-    local output="$( \
+    local output
+    output="$( \
         aws greengrassv2 create-component-version \
             --inline-recipe "fileb://$work_dir/$recipe_filename" \
             | tee /dev/tty)"  # Also print the output.
 
     # Wait until the component is ready.
-    local arn="$(echo "$output" | jq --raw-output '.arn')"
+    local arn
+    arn="$(echo "$output" | jq --raw-output '.arn')"
     [[ "$arn" != "" ]] || exit 1
 
     echo "Waiting for the component to become ready for deployment..."
@@ -237,7 +240,8 @@ function create_deployment_in_greengrass {
     echo "Deploying the components"
 
     # Create the new deployment and get its ID from the output.
-    local deployment_id="$( \
+    local deployment_id
+    deployment_id="$( \
         aws greengrassv2 create-deployment \
             --cli-input-yaml "file://$script_dir/deployment.yaml" \
         | jq --raw-output '.deploymentId')"

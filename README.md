@@ -37,6 +37,8 @@ Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot
             `sudo tail -f /greengrass/v2/logs/io.datapos.ReceiptPrinterMQTTInterface.log`
         - it takes a while
 
+# Component Diagram
+
 ![](components.png)
 
 ### Remote Printing Process
@@ -173,14 +175,15 @@ systemctl status greengrass
 For testing, you can configure the ReceiptPrinter component to print to PDF. However, the PDF will
 always be blank, so you still need a real receipt printer to test the output.
 
+1. The `printer` configuration variable in
+   [io.datapos.ReceiptPrinter-1.0.0.yaml](recipes/io.datapos.ReceiptPrinter-1.0.0.yaml) needs to be
+   set to `PDF`, which it is by default.
 1. Install the print-to-PDF driver on your test device: `sudo apt install cups cups-bsd
    printer-driver-cups-pdf`
 1. In `/etc/cups/cups-pdf.conf` on your device, comment out the line `Out ${HOME}/PDF`. That
    configures the driver to write the PDFs to `/var/spool/cups-pdf/ggc_user` (`ggc_user` is the
    user the component runs as), which avoids permissions issues.
 1. Restart CUPS: `sudo systemctl restart cups`
-1. In [io.datapos.ReceiptPrinter-1.0.0.yaml](recipes/io.datapos.ReceiptPrinter-1.0.0.yaml), change
-   `printer: EPSON_TM-T82III` to `printer: PDF` and redeploy.
 
 ### Submitting a Test Job
 
@@ -212,13 +215,19 @@ r+Salt%3C%2Fh3%3E%3C%2Fcenter%3E++++%3Ccenter%3E+%3Ch4%3EOrder+and+Collect%3C%2F
 
 ### For Development
 
-todo
-
-If you've deployed a component through AWS (i.e. not locally), you'll need to remove it before
-deploying a different version of it locally.
-
-AWS doesn't seem to support deploying Lambda components locally, so you have to use the production
-instructions for ReceiptPrinterMQTTInterface unfortunately.
+1. If you've deployed any of the components through AWS (i.e. not locally), you'll need to remove
+   them from the device before deploying different versions of them locally.
+   ```
+   sudo /greengrass/v2/bin/greengrass-cli deployment create \
+      --remove io.datapos.ReceiptPrinter,io.datapos.ReceiptPrinterMQTTInterface,io.datapos.ReceiptPrinterHTTPInterface \
+      --groupId thinggroup/ReceiptPrinterGroup
+   ```
+   Then check `sudo /greengrass/v2/bin/greengrass-cli component list` until they're removed from the
+   list.
+1. Copy the project directory to your Raspberry Pi by running `copy-to-pi.sh` (or some other way).
+   `copy-to-pi.sh` assumes its hostname will be `raspberrypi.local`, so you'll need to edit it if
+   you've changed that.
+1. Run `deploy-local-on-pi.sh` from the project directory on the device.
 
 ### For Production
 

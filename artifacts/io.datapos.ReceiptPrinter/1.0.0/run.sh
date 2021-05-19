@@ -6,8 +6,11 @@
 # Configures and runs PrintOS.jar, which formats the receipt print jobs and prints them.
 #
 
+# Exit with failure.
+# Params:
+#  - An error message.
 function fail {
-    echo "Fatal error: $1" >&2
+    echo "Fatal error: $1" > /dev/stderr
     exit 1
 }
 
