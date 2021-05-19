@@ -1,6 +1,7 @@
 *~
 [._]*.swp
 .DS_Store
+.idea/
 scratch/
 
 node_modules/

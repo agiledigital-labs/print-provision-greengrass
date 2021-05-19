@@ -173,7 +173,8 @@ function upload_artifacts_to_s3 {
 
 # Create a new component in the AWS Greengrass service.
 # Uploads the artifact files and then creates the component from the component's recipe file.
-# todo explain that the same version of the component can't already exist, but other versions can
+# If this version of the component already exists in Greengrass, this will fail, but other versions
+# of the same component are fine.
 # Params:
 #  - The name of the component.
 #  - The version of the component.
@@ -267,7 +268,7 @@ function main {
     create_artifact_policy
 
     # Create each component.
-    # todo read the version numbers from deployment.yaml or take them as options
+    # TODO: Read the version numbers from deployment.yaml.
     create_component_in_greengrass io.datapos.ReceiptPrinter 1.0.0
     create_component_in_greengrass io.datapos.ReceiptPrinterHTTPInterface 1.0.0
     create_component_in_greengrass io.datapos.ReceiptPrinterMQTTInterface 1.0.0

@@ -18,7 +18,6 @@ Based on <https://github.com/DataPOS-Labs/print-provision>. Runs in [AWS
 Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html).
 
  - todo explain what a greengrass component is and other basic info
- - todo put the drawio diagram in here
  - todo is there anything we should copy from the print-provision repo's README?
  - todo document how greengrass handles health checking
  - todo document how to manage the devices using greengrass
@@ -85,6 +84,10 @@ https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
 ├── component-artifact-policy.json
 │     Used by deploy.sh when it creates the IAM policy that lets the devices get the artifacts from
 │     S3.
+├── components.drawio
+│     A component diagram for the project.
+├── components.png
+│     A raster of components.drawio.
 ├── copy-to-pi.sh
 │     Copies this dir to your test device (RPi) so you can deploy locally for testing.
 ├── deploy-local-on-pi.sh
@@ -230,8 +233,6 @@ r+Salt%3C%2Fh3%3E%3C%2Fcenter%3E++++%3Ccenter%3E+%3Ch4%3EOrder+and+Collect%3C%2F
 1. Run `deploy-local-on-pi.sh` from the project directory on the device.
 
 ### For Production
-
-todo finish this
 
 1. Edit `deployment.yaml`:
    1. Set `targetArn` to the ARN of your Thing Group.
