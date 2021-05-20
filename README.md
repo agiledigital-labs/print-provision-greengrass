@@ -21,7 +21,6 @@ Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot
  - todo is there anything we should copy from the print-provision repo's README?
  - todo document how greengrass handles health checking
  - todo document how to manage the devices using greengrass
- - todo `nvm use` and `npm install` for the components that need that
 
 # Component Diagram
 
@@ -144,6 +143,11 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
         --setup-system-service true
       ```
 1. Deploy the PrintOS software to the Raspberry Pi by following the Deploying section below.
+
+## Installing
+
+Run `npm ci` or `npm install` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and
+`artifacts/io.datapos.ReceiptPrinterHTTPInterface`.
 
 ## Deploying
 
