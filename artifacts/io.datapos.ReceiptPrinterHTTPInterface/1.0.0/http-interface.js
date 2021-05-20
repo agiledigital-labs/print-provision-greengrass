@@ -37,31 +37,20 @@ const dataposApiUrl = args['datapos-api-url'];
 const vendorUsername = args['vendor-username'];
 const vendorPassword = args['vendor-password'];
 
+/**
+ * @see https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
+ */
+const mqttEndpointAddress = args['mqtt-endpoint-address'];
+
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// todo try to figure these out from env vars or whatever
-//      actually, reading them from the config is probably better. see
-//      https://docs.aws.amazon.com/greengrass/v2/developerguide/ipc-component-configuration.html
-//      i think they ultimately come from /greengrass/config/config.json (including `host`)
-//      or maybe the SDK will be able to just figure these out automatically. see
-//      https://docs.aws.amazon.com/greengrass/v2/developerguide/token-exchange-service-component.html
-//      and https://docs.aws.amazon.com/greengrass/v2/developerguide/interact-with-aws-services.html
-//      or it might be ok as it is if we get "/greengrass/v2" from an env var
-//      pass these in as cli opts. from /greengrass/v2/config/effectiveConfig.yaml (or whatever):
-//      system:
-//        certificateFilePath: "/greengrass/v2/thingCert.crt"
-//        privateKeyPath: "/greengrass/v2/privKey.key"
-//        rootCaPath: "/greengrass/v2/rootCA.pem"
-//
-// todo try to take 'sudo' out of the run command in the recipe
 const deviceOptions = (clientId) => ({
   clientId,
+  // The README tells you to install to /greengrass/v2, so these paths should work.
   keyPath: '/greengrass/v2/privKey.key',
   certPath: '/greengrass/v2/thingCert.crt',
   caPath: '/greengrass/v2/rootCA.pem',
-  // todo don't hardcode this. effectiveConfig.yaml has "iotDataEndpoint", which looks similar to
-  //      this url. but it's in the config for the Nucleus component
-  host: 'a21gb26zq6ucj0-ats.iot.ap-southeast-2.amazonaws.com'
+  host: mqttEndpointAddress
 });
 
 // Holds print jobs in a specific format that is required by PrintOS.jar.

@@ -3,34 +3,11 @@
 #
 # deploy.sh
 #
-# Deploys the device software (i.e. the components) through AWS.
+# Deploys the device software (i.e. the components) through AWS. See README.md for usage
+# instructions and a more concrete explanation of what this script does.
 #
-# Usage: deploy.sh [S3 bucket name]
-#
-# This script will
-#  1. Create an S3 bucket with the given name, if it doesn't already exist. (Note that S3 bucket
-#     names must be globally unique.)
-#  2. Create and attach an IAM policy that allows the devices to read files in the bucket.
-#  3. Upload the software artifacts into the S3 bucket so the devices can download and run them.
-#  4. Create, in the AWS Greengrass service,
-#     - the current version of each component, and
-#     - a deployment that deploys those versions to the devices.
-#
-# Before running this script, edit deployment.yaml:
-#  - Change the targetArn field to the ARN of your AWS IoT Thing Group. You can find it at
-#    <https://console.aws.amazon.com/iot/home#/thingGroupHub>.
-#  - If you're using a real printer, change the io.datapos.ReceiptPrinter > configurationUpdate >
-#    merge field to set the name of the printer.
-#
-# If the current version of any of the components has already been created in the AWS Greengrass
-# service, it must be deleted first and removed from the device, e.g. by running this on it:
-#
-#     # TODO: Test this.
-#     sudo /greengrass/v2/bin/greengrass-cli deployment create \
-#         --remove io.datapos.ReceiptPrinter \
-#         --groupId thinggroup/ReceiptPrinterGroup
-#
-# See <https://docs.aws.amazon.com/greengrass/v2/developerguide/upload-components.html> and
+# This script is based on the instructions from
+# <https://docs.aws.amazon.com/greengrass/v2/developerguide/upload-components.html> and
 # <https://docs.aws.amazon.com/greengrass/v2/developerguide/create-deployments.html>.
 #
 
@@ -59,16 +36,12 @@ work_dir="$(mktemp -d)"
 
 # Check the arguments this script was called with.
 function check_args {
-    # If called with no args, "-h" or "-?"...
+    # If called with no args, "-h" or "-?", tell them to check the README.
     if [[ -z "${s3_bucket:-}" ]] \
         || [[ "$s3_bucket" == "-h" ]] \
         || [[ "$s3_bucket" == "-?" ]]; then
-        # Print out the header from this file, which contains usage instructions.
-        # TODO: Make this less cryptic. For now, see <https://stackoverflow.com/a/17353254>.
-        tail -n +4 "$script_dir/$0" \
-            | awk '/^#/,/^$/;/^$/{exit}' >&2
-
-        # Exit early.
+        echo "Usage: deploy.sh [S3 bucket name]" > /dev/stderr
+        echo "See README.md for usage instructions." > /dev/stderr
         exit 1
     fi
 }

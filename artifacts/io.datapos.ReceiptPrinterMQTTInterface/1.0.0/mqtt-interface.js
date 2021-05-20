@@ -1,5 +1,6 @@
 const axios = require('axios');
 const awsIot = require('aws-iot-device-sdk');
+const argsParser = require('args-parser');
 
 // todo use version configured in GG recipe instead. check if we actually need this in the logs
 //      first (and whatever it was doing with the health check). probably don't
@@ -11,19 +12,25 @@ const httpInterfaceBaseUrl = 'http://localhost:8083';
 /** The name of this IoT Thing (i.e. device, e.g. a Raspberry Pi) in AWS. */
 const thingName = process.env.AWS_IOT_THING_NAME;
 
-// MQTT topic used to receive new print jobs.
+/** MQTT topic used to receive new print jobs. */
 const printJobTopic = `print-job/${thingName}`;
+
+/** CLI options */
+const args = argsParser(process.argv);
+
+/**
+ * @see https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
+ */
+const mqttEndpointAddress = args['mqtt-endpoint-address'];
 
 /** The config needed to connect to AWS IoT's MQTT broker. */
 const deviceOptions = (clientId) => ({
   clientId,
-  // todo hardcoded paths
+  // The README tells you to install to /greengrass/v2, so these paths should work.
   keyPath: '/greengrass/v2/privKey.key',
   certPath: '/greengrass/v2/thingCert.crt',
   caPath: '/greengrass/v2/rootCA.pem',
-  // todo don't hardcode this. effectiveConfig.yaml has "iotDataEndpoint", which looks similar to
-  //      this url. but it's in the config for the Nucleus component
-  host: 'a21gb26zq6ucj0-ats.iot.ap-southeast-2.amazonaws.com'
+  host: mqttEndpointAddress
 });
 
 /**
@@ -101,8 +108,8 @@ const main = () => {
     }
   });
 
-  // todo handle (or at least log) other events such as 'disconnect' or 'offline'?
-  // https://github.com/mqttjs/MQTT.js/blob/master/README.md#client
+  // TODO: Should we handle (or at least log) other events such as 'offline'?
+  //       https://github.com/mqttjs/MQTT.js/blob/master/README.md#client
 };
 
 main();

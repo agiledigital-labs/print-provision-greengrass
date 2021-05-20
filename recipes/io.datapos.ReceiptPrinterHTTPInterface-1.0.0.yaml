@@ -6,18 +6,32 @@ ComponentDescription: Receives print jobs over HTTP and passes them to ReceiptPr
 ComponentPublisher: DataPOS
 ComponentConfiguration:
   DefaultConfiguration:
-    # todoc comment
+    # The base URL for your printos-serverless-service
+    # (https://github.com/DataPOS-Labs/printos-serverless-service) deployment. Used to report the
+    # status of the print jobs so printos-serverless-service knows when to stop retrying them.
     printServerUrl: https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev
-    # todoc comment
+    # The base URL for the DataPOS Public API, which is exposed by Core Services
+    # (https://stash.agiledigital.com.au/projects/QFX/repos/merivale/browse/server/modules/core-services).
     dataposApiUrl: https://public-api.shared.staging.datapos.io
     # todoc comment
     vendorUsername: brod
+    # todoc comment
+    # TODO: I think Greengrass has some sort of secrets manager. Should this password go in there
+    #       instead?
     vendorPassword: '1234'
+    # The address to connect to the AWS MQTT broker. You can find this in the AWS console at
+    #   https://console.aws.amazon.com/iot/home#/settings
+    # or by running
+    #   aws iot describe-endpoint --endpoint-type iot:Data-ATS
+    # See also:
+    #   https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
+    mqttEndpointAddress: 'a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com'
 Manifests:
   - Platform:
       os: linux
     Artifacts:
-      # "S3_BUCKET_NAME" will be replaced by deploy.sh.
+      # "S3_BUCKET_NAME" will be replaced by deploy.sh. And for local deployments, it doesn't need
+      # to be replaced.
       - URI: s3://S3_BUCKET_NAME/artifacts/io.datapos.ReceiptPrinterHTTPInterface/1.0.0/artifact.zip
         Unarchive: ZIP
     Lifecycle:
@@ -26,4 +40,5 @@ Manifests:
           --print-server-url='{configuration:/printServerUrl}' \
           --datapos-api-url='{configuration:/dataposApiUrl}' \
           --vendor-username='{configuration:/vendorUsername}' \
-          --vendor-password='{configuration:/vendorPassword}'
+          --vendor-password='{configuration:/vendorPassword}' \
+          --mqtt-endpoint-address='{configuration:/mqttEndpointAddress}'

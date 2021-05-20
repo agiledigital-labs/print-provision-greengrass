@@ -14,12 +14,66 @@ components:
   io.datapos.ReceiptPrinter:
     componentVersion: 1.0.0
     configurationUpdate:
-      # Set the name of the printer for it to use.
-      merge: "{ \"printer\": \"PDF\" }"
-      # To reset a component's configuration to the new defaults:
-      # reset:
-      #   - ""
+      # printer:
+      #   The name of the receipt printer. To list the printers on a device, run `lpstat -p`. See
+      #   README.md for instructions to set up the PDF printer for testing.
+      # destinationPassword:
+      #   The password for the devices set in the DB for printos-serverless-service. Currently, all
+      #   devices in a deployment must use the same password.
+      merge: >-
+        {
+          "printer": "PDF",
+          "destinationPassword": "blueberry"
+        }
   io.datapos.ReceiptPrinterHTTPInterface:
     componentVersion: 1.0.0
+    configurationUpdate:
+      # printServerUrl:
+      #   The base URL for your printos-serverless-service
+      #   (https://github.com/DataPOS-Labs/printos-serverless-service) deployment. Used to report
+      #   the status of the print jobs so printos-serverless-service knows when to stop retrying
+      #   them.
+      # dataposApiUrl:
+      #   The base URL for the DataPOS Public API, which is exposed by Core Services
+      #   (https://stash.agiledigital.com.au/projects/QFX/repos/merivale/browse/server/modules/core-services).
+      # vendorUsername:
+      #   todoc
+      # vendorPassword:
+      #   todoc
+      # mqttEndpointAddress:
+      #   The address to connect to the AWS MQTT broker. You can find this in the AWS console at
+      #     https://console.aws.amazon.com/iot/home#/settings
+      #   or by running
+      #     aws iot describe-endpoint --endpoint-type iot:Data-ATS
+      #   See also:
+      #     https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
+      # TODO: deploy.sh could set mqttEndpointAddress automatically. We could make it automatic for
+      #       local deploys as well, but it would be more complicated because currently you don't
+      #       need the AWS CLI set up to deploy locally. It's also apparently possible for the
+      #       components to get the endpoint address using the Greengrass SDK, but the docs for that
+      #       are confusing and the Greengrass SDK only supports Java and Python:
+      #       https://docs.aws.amazon.com/greengrass/v2/developerguide/ipc-component-configuration.html
+      #       We might also be able to use the AWS SDK, but I'm not sure if that will work in the
+      #       component code (and it's yet another dependency):
+      #       https://github.com/DataPOS-Labs/print-provision/blob/175a6b90c20b45113e50b059e8d8ad8ca9a7b825/provision.js#L81
+      merge: >-
+        {
+          "printServerUrl": "https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev",
+          "dataposApiUrl": "https://public-api.shared.staging.datapos.io",
+          "vendorUsername": "brod",
+          "vendorPassword": "1234",
+          "mqttEndpointAddress": "a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com"
+        }
   io.datapos.ReceiptPrinterMQTTInterface:
     componentVersion: 1.0.0
+    configurationUpdate:
+      # mqttEndpointAddress:
+      #   The address to connect to the AWS MQTT broker. You can find this in the AWS console or by
+      #   running
+      #       aws iot describe-endpoint --endpoint-type iot:Data-ATS
+      #   See also:
+      #   https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
+      merge: >-
+        {
+          "mqttEndpointAddress": "a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com"
+        }

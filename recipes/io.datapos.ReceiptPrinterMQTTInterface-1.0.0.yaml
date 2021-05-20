@@ -7,12 +7,22 @@ ComponentDescription: |
 ComponentPublisher: DataPOS
 ComponentConfiguration:
   DefaultConfiguration:
+    # The address to connect to the AWS MQTT broker. You can find this in the AWS console at
+    #   https://console.aws.amazon.com/iot/home#/settings
+    # or by running
+    #   aws iot describe-endpoint --endpoint-type iot:Data-ATS
+    # See also:
+    #   https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
+    mqttEndpointAddress: 'a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com'
 Manifests:
   - Platform:
       os: linux
     Artifacts:
-      # "S3_BUCKET_NAME" will be replaced by deploy.sh.
+      # "S3_BUCKET_NAME" will be replaced by deploy.sh. And for local deployments, it doesn't need
+      # to be replaced.
       - URI: s3://S3_BUCKET_NAME/artifacts/io.datapos.ReceiptPrinterMQTTInterface/1.0.0/artifact.zip
         Unarchive: ZIP
     Lifecycle:
-      Run: node {artifacts:decompressedPath}/artifact/mqtt-interface.js
+      Run: |
+        node {artifacts:decompressedPath}/artifact/mqtt-interface.js \
+          --mqtt-endpoint-address='{configuration:/mqttEndpointAddress}'

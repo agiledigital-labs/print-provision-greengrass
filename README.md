@@ -22,19 +22,6 @@ Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot
  - todo document how greengrass handles health checking
  - todo document how to manage the devices using greengrass
  - todo `nvm use` and `npm install` for the components that need that
- - todo document this:
-        - to deploy the custom component locally to test it, copy to the pi
-          ```
-          ./copy-to-pi.sh
-          ```
-          (takes a while first time because of node_modules) and then run these commands on the pi
-          (not sure you actually need the first one)
-          ```
-          ./deploy-local-on-pi.sh
-          ```
-        - then you can check the logs in /greengrass/v2/logs, e.g.
-            `sudo tail -f /greengrass/v2/logs/io.datapos.ReceiptPrinterMQTTInterface.log`
-        - it takes a while
 
 # Component Diagram
 
@@ -54,12 +41,8 @@ Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot
     receipt and prints it. Then it tells ReceiptPrinterHTTPInterface that the job is complete, which
     tells printos-serverless-service and so on.
 
-todo explain why it uses mqtt. something like this (below). also mention qos?
-
-It has an MQTT interface because that's the protocol AWS IoT uses and also has an HTTP interface for
-jobs submitted locally by PotatOS. and that the HTTP interface is also polled by PrintOS.jar. maybe
-make a diagram of everything if there's time.  see
-https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
+We use MQTT to send the remote print jobs mainly because it's the protocol with the best support in
+AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub model.
 
 ### Local Network Printing Process
 
@@ -175,6 +158,9 @@ https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
    ```
    Then check `sudo /greengrass/v2/bin/greengrass-cli component list` until they're removed from the
    list.
+1. Edit the recipes in the `recipes/` dir and change the configuration variables for the components
+   as needed. You'll probably need to change most of them. There are some comments in the recipes
+   that explain how.
 1. Copy the project directory to your Raspberry Pi by running `copy-to-pi.sh` (or some other way).
    `copy-to-pi.sh` assumes its hostname will be `raspberrypi.local`, so you'll need to edit it if
    you've changed that.
@@ -183,13 +169,36 @@ https://docs.aws.amazon.com/iot/latest/developerguide/protocols.html
 ### For Production
 
 1. Edit `deployment.yaml`:
-   1. Set `targetArn` to the ARN of your Thing Group.
+   1. Change the `targetArn` field to the ARN of your AWS IoT Thing Group. You can find it at
+      <https://console.aws.amazon.com/iot/home#/thingGroupHub>.
    1. Change the `componentVersion` fields if you want to deploy different versions of the
-      components. If you do, you currently need to change the version numbers in the `main` function
-      of `deploy.sh` as well.
-1. Run `deploy.sh`. Run it with no args first to see the instructions.
+      components. If you do, you currently need to change the version numbers in `deploy.sh` as
+      well.
+   1. Change the configuration variables for the components as needed. You'll probably need to
+      change most of them. There are some comments in the file that explain how.
+1. If you haven't already, configure the AWS CLI to use the correct account/user.
+   ```
+   aws configure
+   ```
+   You can check first with `aws sts get-caller-identity`.
+1. Choose an S3 bucket to store the components' artifacts and run `deploy.sh [S3 bucket name]`. If
+   the bucket doesn't already exist, `deploy.sh` will create it. Note that S3 bucket names must be
+   globally unique.
 
-You can check the progress of the deployment in the AWS Console.
+   `deploy.sh` will then:
+   1. If it hasn't already been created, create and attach an IAM policy that allows the devices to
+      read the files in the S3 bucket.
+   1. Upload the software artifacts into the S3 bucket so the devices can download and run them.
+   1. In the AWS Greengrass service, create
+      - the current version of each component, and
+      - a deployment that deploys those versions to the devices.
+1. Consider committing your `deployment.yaml` to this repo, for example, as
+   `deployment-brodburger.yaml`.
+
+### Checking Your Deployment
+
+It can take a while for the deployment to roll out to your device and start running, even for a
+local deployment. You can check its progress in the AWS Console or on your device.
 
 To check the progress on a particular device, you can watch the logs from the deployment by running
 this on the device:
@@ -207,7 +216,14 @@ useful details.
 ## Troubleshooting
 
 Greengrass writes logs to the directory `/greengrass/v2/logs` on the device, including logs from the
-components.
+components. You can watch the most relevant logs with
+
+```
+sudo tail --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinterHTTPInterface.log \
+   --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinterMQTTInterface.log \
+   --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinter.log \
+   --follow=name /greengrass/v2/logs/greengrass.log
+```
 
 You can check on the Greengrass Core software with
 

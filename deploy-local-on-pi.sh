@@ -3,15 +3,8 @@
 #
 # deploy-local-on-pi.sh
 #
-# Deploys the Greengrass components locally on the Pi for testing.
-#
-# After running this script, you can check the logs with
-#     sudo tail --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinterHTTPInterface.log \
-#       --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinterMQTTInterface.log \
-#       --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinter.log \
-#       --follow=name /greengrass/v2/logs/greengrass.log
-#
-# It can take a few minutes for the new deployments to start up.
+# Deploys the Greengrass components locally on the Pi for testing. See README.md for instructions
+# for deploying locally.
 #
 # Options:
 #  -r Deploy the io.datapos.ReceiptPrinter component.
@@ -21,6 +14,7 @@
 #
 
 # The versions of the components to deploy.
+# TODO: Should we read these from deployment.yaml? Or maybe from env vars or take them as options?
 receipt_printer_version=1.0.0
 mqtt_interface_version=1.0.0
 http_interface_version=1.0.0
@@ -49,7 +43,7 @@ while getopts "rhm" opt; do
         r) deploy_receipt_printer=true ;;
         h) deploy_http_interface=true ;;
         m) deploy_mqtt_interface=true ;;
-        *) fail "See the header comment for usage." ;;
+        *) fail "See the header comment and README.md for usage instructions." ;;
     esac
 done
 
@@ -121,6 +115,10 @@ echo "Removing previous local deployments of the components (if any)"
 # Deploy the components.
 echo "Deploying the components locally"
 (set -x
+    # TODO: It might be worth reading the configurationUpdate fields for each component from
+    #       deployment.yaml and then using --update-config to apply them in this command. Then you
+    #       wouldn't have to remember to edit that config in the recipes instead for local
+    #       deployments.
     # shellcheck disable=SC2086 # create_args contains multiple arguments.
     sudo /greengrass/v2/bin/greengrass-cli deployment create \
         --recipeDir "$script_dir/recipes" \
