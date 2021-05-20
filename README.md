@@ -144,15 +144,12 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
       ```
 1. Deploy the PrintOS software to the Raspberry Pi by following the Deploying section below.
 
-## Installing
-
-Run `npm ci` or `npm install` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and
-`artifacts/io.datapos.ReceiptPrinterHTTPInterface`.
-
 ## Deploying
 
 ### For Development
 
+1. Run `npm install` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and in
+   `artifacts/io.datapos.ReceiptPrinterHTTPInterface`.
 1. If you've deployed any of the components through AWS (i.e. not locally), you'll need to remove
    them from the device before deploying different versions of them locally.
    ```
@@ -172,6 +169,8 @@ Run `npm ci` or `npm install` in `artifacts/io.datapos.ReceiptPrinterMQTTInterfa
 
 ### For Production
 
+1. Run `npm ci` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and in
+   `artifacts/io.datapos.ReceiptPrinterHTTPInterface`.
 1. Edit `deployment.yaml`:
    1. Change the `targetArn` field to the ARN of your AWS IoT Thing Group. You can find it at
       <https://console.aws.amazon.com/iot/home#/thingGroupHub>.

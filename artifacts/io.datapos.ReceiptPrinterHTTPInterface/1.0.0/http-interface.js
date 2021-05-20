@@ -8,8 +8,6 @@
 //      and https://github.com/DataPOS-Labs/print-provision#pre-provision and probably other things
 //      in the README
 
-// todo auto npm install? just put it in the README?
-
 const express = require('express');
 const axios = require('axios');
 const awsIot = require('aws-iot-device-sdk');
