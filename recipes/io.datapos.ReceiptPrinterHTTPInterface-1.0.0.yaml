@@ -12,10 +12,13 @@ ComponentConfiguration:
     printServerUrl: https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev
     # The base URL for the DataPOS Public API, which is exposed by Core Services
     # (https://stash.agiledigital.com.au/projects/QFX/repos/merivale/browse/server/modules/core-services).
+    # Used to report the health status of the device.
     dataposApiUrl: https://public-api.shared.staging.datapos.io
-    # todoc comment
+    # The vendor's username for authenticating with the DataPOS Public API. Used to report the
+    # health status of the device.
     vendorUsername: brod
-    # todoc comment
+    # The vendor's password for authenticating with the DataPOS Public API. Used to report the
+    # health status of the device.
     # TODO: I think Greengrass has some sort of secrets manager. Should this password go in there
     #       instead?
     vendorPassword: '1234'

@@ -29,13 +29,38 @@ const healthHeartBeatInterval = 60 * 1000;
 /** The name of this IoT Thing (i.e. device, e.g. a Raspberry Pi) in AWS. */
 const thingName = process.env.AWS_IOT_THING_NAME;
 
-// todoc comments for these
+/**
+ * The base URL for your printos-serverless-service
+ * (https://github.com/DataPOS-Labs/printos-serverless-service) deployment. Used to report the
+ * status of the print jobs so printos-serverless-service knows when to stop retrying them.
+ */
 const printServerUrl = args['print-server-url'];
+
+/**
+ * The base URL for the DataPOS Public API, which is exposed by Core Services
+ * (https://stash.agiledigital.com.au/projects/QFX/repos/merivale/browse/server/modules/core-services).
+ * Used to report the health status of the device.
+ */
 const dataposApiUrl = args['datapos-api-url'];
+
+/**
+ * The vendor's username for authenticating with the DataPOS Public API. Used to report the health
+ * status of the device.
+ */
 const vendorUsername = args['vendor-username'];
+
+/**
+ * The vendor's password for authenticating with the DataPOS Public API. Used to report the health
+ * status of the device.
+ */
 const vendorPassword = args['vendor-password'];
 
 /**
+ * The address to connect to the AWS MQTT broker. You can find this in the AWS console at
+ *   https://console.aws.amazon.com/iot/home#/settings
+ * or by running
+ *   aws iot describe-endpoint --endpoint-type iot:Data-ATS
+ *
  * @see https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
  */
 const mqttEndpointAddress = args['mqtt-endpoint-address'];
@@ -59,9 +84,10 @@ let printJobs = {
 
 let lastHealthStatus = {};
 
-// todo comment this out at first? after that i'm not sure. maybe it will just work. does
-//      provision.js create a device shadow or anything like that?
-// todo check the thing shadow is working properly. might need to ask haolin to explain it
+// todo ask haolin if the shadow is used for anything or if it's just so we can check the last
+//      health status in AWS. if the latter, can we configure LogManager to send the logs to AWS
+//      instead? logMessage logs the same information as we store in the shadow. and then we could
+//      remove a decent amount of code from this file and mqtt-interface.js
 let thingShadow = undefined;
 
 /**
@@ -247,10 +273,6 @@ app.post('/update', async (req, res) => {
 // todo check whether greengrass fully replaces manual health check functionality
 // todo what should we do with the server end of the health check? just delete it? is it used for
 //      anything else? probably talk to haolin about it
-// todo put `nvm use` in the README
-// todo need to create a policy for each device like provision.js does?
-// todo does stdout and stderr from this app and from PrintOS.jar end up in the right place
-//      (somewhere in AWS, i assume)
 const reportHealthCheck = async () => {
   try { 
     console.log('Reporting health...');
@@ -299,7 +321,7 @@ const reportHealthCheck = async () => {
 };
 
 const main = () => {
-  // todo delete
+  // Log the environment vars.
   console.log(JSON.stringify(process.env));
 
   // See https://docs.aws.amazon.com/iot/latest/developerguide/iot-device-shadows.html

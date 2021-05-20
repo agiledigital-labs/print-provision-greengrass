@@ -36,10 +36,13 @@ components:
       # dataposApiUrl:
       #   The base URL for the DataPOS Public API, which is exposed by Core Services
       #   (https://stash.agiledigital.com.au/projects/QFX/repos/merivale/browse/server/modules/core-services).
+      #   Used to report the health status of the device.
       # vendorUsername:
-      #   todoc
+      #   The vendor's username for authenticating with the DataPOS Public API. Used to report the
+      #   health status of the device.
       # vendorPassword:
-      #   todoc
+      #   The vendor's password for authenticating with the DataPOS Public API. Used to report the
+      #   health status of the device.
       # mqttEndpointAddress:
       #   The address to connect to the AWS MQTT broker. You can find this in the AWS console at
       #     https://console.aws.amazon.com/iot/home#/settings

@@ -19,6 +19,11 @@ const printJobTopic = `print-job/${thingName}`;
 const args = argsParser(process.argv);
 
 /**
+ * The address to connect to the AWS MQTT broker. You can find this in the AWS console at
+ *   https://console.aws.amazon.com/iot/home#/settings
+ * or by running
+ *   aws iot describe-endpoint --endpoint-type iot:Data-ATS
+ *
  * @see https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
  */
 const mqttEndpointAddress = args['mqtt-endpoint-address'];
@@ -48,10 +53,7 @@ const logMessage = (status, message, printJobId) => {
 
 /** Submit the job to be printed (via the HTTP interface). */
 const submitPrintJob = async (id, data) => {
-  // todo just log the size of the data?
-  logMessage('Success',
-    `Received print job. Submitting it to ReceiptPrinter. Data: [${data}].`,
-    id);
+  logMessage('Success', `Received print job. Submitting it to ReceiptPrinter.`, id);
 
   // Forward the print job on to the HTTP interface.
   const params = new URLSearchParams();
@@ -59,10 +61,6 @@ const submitPrintJob = async (id, data) => {
   params.append('data', data);
 
   const response = await axios.post(`${httpInterfaceBaseUrl}/submit`, params);
-
-  // todo delete
-  console.log(`response status: ${JSON.stringify(response.status)}`);
-  console.log(`response data: ${JSON.stringify(response.data)}`);
 
   if (response.status === 200 && response.data.pass) {
     logMessage('Success', 'Submitted print job.', id);
