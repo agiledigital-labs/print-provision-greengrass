@@ -88,9 +88,13 @@ let lastHealthStatus = {};
 //      health status in AWS. if the latter, can we configure LogManager to send the logs to AWS
 //      instead? logMessage logs the same information as we store in the shadow. and then we could
 //      remove a decent amount of code from this file and mqtt-interface.js
+//      update: haolin says it's only used manually and no software reads from the shadow
 let thingShadow = undefined;
 
 /**
+ * todo i asked haolin about this and hc.sh is probably
+ *      https://github.com/DataPOS-Labs/smoupon/blob/master/hc.sh. we don't use smoupon anymore, so
+ *      it might be worth changing it to structured logging at some point
  * Log message is in a format for hc.sh to pickup, separated by pipe "|" with specific order:
  * [serviceService]|[status]|[Log Date Time]|[print job id]|[message]
  * 
@@ -161,7 +165,7 @@ app.post('/submit', (req, res) => {
   // todoc add remoteJobId to the http interface docs. (if there are none, write some)
   const id = data.remoteJobId || '-1';
 
-  // todo return 400 if typeof id !== 'string'
+  // TODO: Return 400 if typeof id !== 'string'
 
   printJobs.ids.push(id);
   printJobs.data.push(printData);
@@ -270,9 +274,6 @@ app.post('/update', async (req, res) => {
   }
 });
 
-// todo check whether greengrass fully replaces manual health check functionality
-// todo what should we do with the server end of the health check? just delete it? is it used for
-//      anything else? probably talk to haolin about it
 const reportHealthCheck = async () => {
   try { 
     console.log('Reporting health...');
@@ -285,38 +286,43 @@ const reportHealthCheck = async () => {
     const params = new URLSearchParams();
     params.append('username', vendorUsername);
     params.append('password', vendorPassword);
-    // todo delete
-    console.log(`vendorUsername: ${vendorUsername}`);
-    console.log(`vendorPassword: ${vendorPassword}`);
-    console.log(`dataposApiUrl: ${dataposApiUrl}`);
 
     const response = await axios.post(`${dataposApiUrl}/v1/current-vendor/login`, params);
 
     const authCookie = response.headers['set-cookie'][0];
 
-    // todo this is failing with 400
-    // const hcResponse = await axios.post(`${dataposApiUrl}/v1/current-vendor/external-service/status`, {
-    //   externalService: {
-    //     serviceVendorUser: vendorUsername,
-    //     serviceType: `print-${thingName}`,
-    //     serviceVersion: serviceVersion
-    //   },
-    //   status: lastHealthStatus.status,
-    //   message: lastHealthStatus.message,
-    //   lastSuccessId: lastHealthStatus.printJobId && lastHealthStatus.printJobId.toString(),
-    //   lastSuccessTime: new Date().toISOString()
-    // }, {
-    //   headers: {
-    //     Cookie: authCookie,
-    //     'Content-Type': 'application/json'
-    //   }
-    // });
+    // If any of the fields are undefined, the request will fail with a 400 error, so default to
+    // success.
+    const data = {
+      externalService: {
+        serviceVendorUser: vendorUsername,
+        serviceType: `print-${thingName}`,
+        serviceVersion: serviceVersion
+      },
+      status: lastHealthStatus.status || 'Success',
+      message: lastHealthStatus.message || '',
+      lastSuccessId: lastHealthStatus.printJobId ?
+          lastHealthStatus.printJobId.toString() : "",
+      lastSuccessTime: new Date().toISOString()
+    };
+
+    console.log(`Health report data: ${JSON.stringify(data)}`);
+
+    const hcResponse =
+      await axios.post(`${dataposApiUrl}/v1/current-vendor/external-service/status`, 
+        data,
+        {
+          headers: {
+            Cookie: authCookie,
+            'Content-Type': 'application/json'
+          }
+        });
+
+    console.log(`Successfully reported health. Response: ${JSON.stringify(hcResponse.data)}`);
   } catch (err) {
     console.error('Failed to report health', err.message);
     console.error(err);
-    console.error(err.response.data);
-    console.error(err.response.status);
-    console.error(err.response.headers);
+    console.dir(err.response);
   }
 };
 

@@ -108,6 +108,8 @@ remove_args="${remove_args#,}"
 
 # If the any of the components are already deployed locally to this device, remove them first. The
 # new versions don't always seem to get deployed otherwise.
+# TODO: It seems like sometimes the components only get removed if you remove them one-by-one. I
+#       think the docs are just wrong. Or maybe it just takes a long time and we need to poll it.
 echo "Removing previous local deployments of the components (if any)"
 (set -x
     sudo /greengrass/v2/bin/greengrass-cli deployment create --remove "$remove_args")
@@ -119,6 +121,9 @@ echo "Deploying the components locally"
     #       deployment.yaml and then using --update-config to apply them in this command. Then you
     #       wouldn't have to remember to edit that config in the recipes instead for local
     #       deployments.
+    #       If not, we should use --update-config to reset all of the configs. Otherwise, any
+    #       changes you make to the defaults in the recipes will be ignored if you've deployed the
+    #       component on the device before.
     # shellcheck disable=SC2086 # create_args contains multiple arguments.
     sudo /greengrass/v2/bin/greengrass-cli deployment create \
         --recipeDir "$script_dir/recipes" \
