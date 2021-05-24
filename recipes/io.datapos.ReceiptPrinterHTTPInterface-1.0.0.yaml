@@ -45,4 +45,5 @@ Manifests:
           --datapos-api-url='{configuration:/dataposApiUrl}' \
           --vendor-username='{configuration:/vendorUsername}' \
           --vendor-password='{configuration:/vendorPassword}' \
-          --mqtt-endpoint-address='{configuration:/mqttEndpointAddress}'
+          --mqtt-endpoint-address='{configuration:/mqttEndpointAddress}' \
+          --component-version='1.0.0'

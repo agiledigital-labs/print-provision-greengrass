@@ -229,7 +229,9 @@ useful details.
    cp recipes/io.datapos.ReceiptPrinter-2.0.0.yaml recipes/io.datapos.ReceiptPrinter-1.0.2.yaml
    cp -r artifacts/io.datapos.ReceiptPrinter/2.0.0 artifacts/io.datapos.ReceiptPrinter/1.0.2
    ```
-   Then change the version number in `recipes/io.datapos.ReceiptPrinter-1.0.2.yaml` as well.
+   Then change the version number in `recipes/io.datapos.ReceiptPrinter-1.0.2.yaml` as well. You may
+   need to change it in multiple places in the recipe file, e.g. the S3 URL.
+1. Update the version numbers in `deploy.sh` and `deploy-local-to-pi.sh` if necessary.
 1. Update the dependencies in the recipe files if necessary.
 1. Merge the component to be released into the `released` branch. Don't include any of the other
    in-progress versions in the merge, but do include any non-component files such as the deployment

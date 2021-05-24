@@ -19,10 +19,6 @@ const argsParser = require('args-parser');
 const app = express();
 const args = argsParser(process.argv);
 
-// todo use version configured in GG recipe instead. check if we actually need this in the logs
-//      first (and whatever it was doing with the health check). probably don't
-const serviceVersion = '0.2.0';
-
 /** The duration in milliseconds between reporting the device status to core-services. */
 const healthHeartBeatInterval = 60 * 1000;
 
@@ -65,6 +61,9 @@ const vendorPassword = args['vendor-password'];
  */
 const mqttEndpointAddress = args['mqtt-endpoint-address'];
 
+/** The version number of this component. */
+const componentVersion = args['component-version'];
+
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const deviceOptions = (clientId) => ({
@@ -103,7 +102,7 @@ let thingShadow = undefined;
  * @param {*} printJobId id of the print job.
  */
 const logMessage = (status, message, printJobId) => {
-  console.log(`${serviceVersion}|${status}|${new Date().toISOString()}|${printJobId}|${message}`);
+  console.log(`${componentVersion}|${status}|${new Date().toISOString()}|${printJobId}|${message}`);
 
   lastHealthStatus = {
     status,
@@ -303,8 +302,8 @@ const reportHealthCheck = async () => {
     const data = {
       externalService: {
         serviceVendorUser: vendorUsername,
-        serviceType: `print-${thingName}`,
-        serviceVersion: serviceVersion
+        serviceType: `print-${thingName}-http`,
+        serviceVersion: componentVersion
       },
       status: lastHealthStatus.status || 'Success',
       message: lastHealthStatus.message || '',

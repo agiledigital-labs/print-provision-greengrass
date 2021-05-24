@@ -3,16 +3,16 @@ targetArn: arn:aws:iot:ap-southeast-2:926078734639:thinggroup/ReceiptPrinterGrou
 deploymentName: ReceiptPrinterDeployment
 components:
   aws.greengrass.Cli:
-    componentVersion: 2.1.0
+    componentVersion: "2.1.0"
   aws.greengrass.LogManager:
-    componentVersion: 2.1.0
+    componentVersion: "2.1.0"
   aws.greengrass.Nucleus:
-    componentVersion: 2.1.0
+    componentVersion: "2.1.0"
     # To enable debug logging for the Nucleus:
     # configurationUpdate:
     #   merge: "{ \"logging\": { \"level\": \"DEBUG\" } }"
   io.datapos.ReceiptPrinter:
-    componentVersion: 1.0.0
+    componentVersion: "1.0.0"
     configurationUpdate:
       # printer:
       #   The name of the receipt printer. To list the printers on a device, run `lpstat -p`. See
@@ -26,7 +26,7 @@ components:
           "destinationPassword": "blueberry"
         }
   io.datapos.ReceiptPrinterHTTPInterface:
-    componentVersion: 1.0.0
+    componentVersion: "1.0.0"
     configurationUpdate:
       # printServerUrl:
       #   The base URL for your printos-serverless-service
@@ -68,7 +68,7 @@ components:
           "mqttEndpointAddress": "a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com"
         }
   io.datapos.ReceiptPrinterMQTTInterface:
-    componentVersion: 1.0.0
+    componentVersion: "1.0.0"
     configurationUpdate:
       # mqttEndpointAddress:
       #   The address to connect to the AWS MQTT broker. You can find this in the AWS console or by

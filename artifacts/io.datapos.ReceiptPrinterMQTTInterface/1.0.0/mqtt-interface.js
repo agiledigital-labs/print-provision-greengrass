@@ -2,10 +2,6 @@ const axios = require('axios');
 const awsIot = require('aws-iot-device-sdk');
 const argsParser = require('args-parser');
 
-// todo use version configured in GG recipe instead. check if we actually need this in the logs
-//      first (and whatever it was doing with the health check). probably don't
-const serviceVersion = '0.2.0';
-
 /** The URL for the ReceiptPrinterHTTPInterface component. */
 const httpInterfaceBaseUrl = 'http://localhost:8083';
 
@@ -28,10 +24,15 @@ const args = argsParser(process.argv);
  */
 const mqttEndpointAddress = args['mqtt-endpoint-address'];
 
+/** The version number of this component. */
+const componentVersion = args['component-version'];
+
 /** The config needed to connect to AWS IoT's MQTT broker. */
 const deviceOptions = (clientId) => ({
   clientId,
-  // The README tells you to install to /greengrass/v2, so these paths should work.
+  // The README tells you to install to /greengrass/v2, so these paths should work. We could use
+  // {kernel:rootPath} in the recipe to pass the path in as a CLI arg, but it might not be worth the
+  // effort.
   keyPath: '/greengrass/v2/privKey.key',
   certPath: '/greengrass/v2/thingCert.crt',
   caPath: '/greengrass/v2/rootCA.pem',
@@ -48,7 +49,7 @@ const deviceOptions = (clientId) => ({
  * @param {*} printJobId id of the print job.
  */
 const logMessage = (status, message, printJobId) => {
-  console.log(`${serviceVersion}|${status}|${new Date().toISOString()}|${printJobId}|${message}`);
+  console.log(`${componentVersion}|${status}|${new Date().toISOString()}|${printJobId}|${message}`);
 };
 
 /** Submit the job to be printed (via the HTTP interface). */

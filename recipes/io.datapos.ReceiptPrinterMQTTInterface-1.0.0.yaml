@@ -26,4 +26,5 @@ Manifests:
     Lifecycle:
       Run: |
         node {artifacts:decompressedPath}/artifact/mqtt-interface.js \
-          --mqtt-endpoint-address='{configuration:/mqttEndpointAddress}'
+          --mqtt-endpoint-address='{configuration:/mqttEndpointAddress}' \
+          --component-version='1.0.0'
