@@ -5,6 +5,7 @@ ComponentVersion: '1.0.0'
 ComponentDescription: |
   Receives print jobs from the cloud print server (printos-serverless-service) through MQTT.
 ComponentPublisher: DataPOS
+# TODO: Add a dependency on ReceiptPrinterHTTPInterface so you can't install incompatible versions.
 ComponentConfiguration:
   DefaultConfiguration:
     # The address to connect to the AWS MQTT broker. You can find this in the AWS console at

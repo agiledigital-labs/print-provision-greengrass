@@ -56,13 +56,13 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
 ├── artifacts/
 │   │ The software artifacts for the Greengrass components, one subdir per component. The contents
 │   │ are deployed to the IoT devices (the Raspberry Pis).
-│   ├── io.datapos.ReceiptPrinter/
-│   │     Formats the print jobs and prints them.
-│   ├── io.datapos.ReceiptPrinterHTTPInterface/
-│   │     Receives print jobs through HTTP from the local network and from
-│   │     ReceiptPrinterMQTTInterface.
-│   └── io.datapos.ReceiptPrinterMQTTInterface/
-│         Receives remote (internet) print jobs from AWS through MQTT.
+│   ├── io.datapos.ReceiptPrinter/
+│   │     Formats the print jobs and prints them.
+│   ├── io.datapos.ReceiptPrinterHTTPInterface/
+│   │     Receives print jobs through HTTP from the local network and from
+│   │     ReceiptPrinterMQTTInterface.
+│   └── io.datapos.ReceiptPrinterMQTTInterface/
+│         Receives remote (internet) print jobs from AWS through MQTT.
 ├── component-artifact-policy.json
 │     Used by deploy.sh when it creates the IAM policy that lets the devices get the artifacts from
 │     S3.
@@ -80,9 +80,9 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
 │     Used by deploy.sh. Specifies the components to be deployed, among other things.
 └── recipes/
     │ The config and metadata for the Greengrass components.
-    ├── io.datapos.ReceiptPrinterMQTTInterface-1.0.0.yaml
-    ├── io.datapos.ReceiptPrinterHTTPInterface-1.0.0.yaml
-    └── io.datapos.ReceiptPrinter-1.0.0.yaml
+    ├── io.datapos.ReceiptPrinterMQTTInterface-1.0.0.yaml
+    ├── io.datapos.ReceiptPrinterHTTPInterface-1.0.0.yaml
+    └── io.datapos.ReceiptPrinter-1.0.0.yaml
 ```
 
 ## Setting Up a Raspberry Pi
@@ -169,6 +169,8 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
 
 ### For Production
 
+1. Checkout the `released` branch. See the Releasing section below if you want to deploy a component 
+   version that hasn't been released yet.
 1. Run `npm ci` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and in
    `artifacts/io.datapos.ReceiptPrinterHTTPInterface`.
 1. Edit `deployment.yaml`:
@@ -195,7 +197,7 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
    1. In the AWS Greengrass service, create
       - the current version of each component, and
       - a deployment that deploys those versions to the devices.
-1. Consider committing your `deployment.yaml` to this repo, for example, as
+1. Consider committing your `deployment.yaml` to the `main` branch, for example, as
    `deployment-brodburger.yaml`.
 
 ### Checking Your Deployment
@@ -215,6 +217,23 @@ Or you can run (from any machine) `aws greengrassv2 list-installed-components
 deployed to it. The thing name will be "ReceiptPrinterPi" if you followed the example above. Or run
 `sudo /greengrass/v2/bin/greengrass-cli component list` on the device itself to get a list with more
 useful details.
+
+## Releasing
+
+1. If the changes for the component to be released doesn't warrant a new major version number
+   (following semver), copy the in-progress version of that component and give the copy the
+   appropriate version number. Commit this to `main`.
+   
+   For example,
+   ```bash
+   cp recipes/io.datapos.ReceiptPrinter-2.0.0.yaml recipes/io.datapos.ReceiptPrinter-1.0.2.yaml
+   cp -r artifacts/io.datapos.ReceiptPrinter/2.0.0 artifacts/io.datapos.ReceiptPrinter/1.0.2
+   ```
+   Then change the version number in `recipes/io.datapos.ReceiptPrinter-1.0.2.yaml` as well.
+1. Update the dependencies in the recipe files if necessary.
+1. Merge the component to be released into the `released` branch. Don't include any of the other
+   in-progress versions in the merge, but do include any non-component files such as the deployment
+   scripts.
 
 ## Troubleshooting
 

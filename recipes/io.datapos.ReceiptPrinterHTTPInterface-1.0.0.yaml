@@ -4,6 +4,7 @@ ComponentName: io.datapos.ReceiptPrinterHTTPInterface
 ComponentVersion: '1.0.0'
 ComponentDescription: Receives print jobs over HTTP and passes them to ReceiptPrinter.
 ComponentPublisher: DataPOS
+# TODO: Add a dependency on ReceiptPrinterHTTPInterface so you can't install incompatible versions.
 ComponentConfiguration:
   DefaultConfiguration:
     # The base URL for your printos-serverless-service
