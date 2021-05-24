@@ -149,7 +149,8 @@ app.post('/submit', (req, res) => {
   const data = req.body;
   console.log('data.remoteJobId');
   console.dir(data.remoteJobId);
-  // todo return 400 if typeof data.data !== 'string'
+
+  // TODO: Return 400 if typeof data.data !== 'string'
   const printData = urlencode.decode(data.data.replace(/\+/g, '%20'));
 
   // Check we haven't already received this job. This won't affect local jobs because they probably
@@ -170,17 +171,22 @@ app.post('/submit', (req, res) => {
   printJobs.ids.push(id);
   printJobs.data.push(printData);
 
-  console.log(
-    `Added print job [${id}] to the queue. Job data: [${printData}], queue IDs: ` +
-      `[${JSON.stringify(printJobs.ids)}], queue data: [${JSON.stringify(printJobs.data)}]`);
+  logMessage(
+    'Success',
+    `Added print job to the queue. Job data: [${printData}], queue IDs: ` +
+      `[${JSON.stringify(printJobs.ids)}], queue data: [${JSON.stringify(printJobs.data)}]`,
+    id);
 
   res.send({ pass: true });
 });
 
 // Handles the lookup for print jobs in the memory.
 app.post('/lookup', (_req, res) => {
-  console.log(
-    `Looked up queue. IDs: [${JSON.stringify(printJobs.ids)}], data: [${JSON.stringify(printJobs.data)}]`);
+  if (printJobs.ids.length !== 0 || printJobs.data.length !== 0) {
+    console.log(
+      `Looked up queue. IDs: [${JSON.stringify(printJobs.ids)}], ` +
+        `data: [${JSON.stringify(printJobs.data)}]`);
+  }
 
   res.send({
     pass: true,
@@ -274,15 +280,16 @@ app.post('/update', async (req, res) => {
   }
 });
 
+// todo extract this into a library so mqtt-interface.js can use it as well
+/** Report the current health status to the DataPOS API. */
 const reportHealthCheck = async () => {
   try { 
     console.log('Reporting health...');
 
     // Allow auth cookies to be passed.
-    const transport = axios.create({
-      withCredentials: true
-    });
+    axios.create({ withCredentials: true });
 
+    // Authenticate with the vendor credentials.
     const params = new URLSearchParams();
     params.append('username', vendorUsername);
     params.append('password', vendorPassword);

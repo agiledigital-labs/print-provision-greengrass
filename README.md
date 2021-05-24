@@ -154,11 +154,11 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
    them from the device before deploying different versions of them locally.
    ```
    sudo /greengrass/v2/bin/greengrass-cli deployment create \
-      --remove io.datapos.ReceiptPrinter,io.datapos.ReceiptPrinterMQTTInterface,io.datapos.ReceiptPrinterHTTPInterface \
-      --groupId thinggroup/ReceiptPrinterGroup
+      --remove io.datapos.ReceiptPrinter --groupId thinggroup/ReceiptPrinterGroup
    ```
-   Then check `sudo /greengrass/v2/bin/greengrass-cli component list` until they're removed from the
-   list.
+   Then check `sudo /greengrass/v2/bin/greengrass-cli component list` until it's removed from the
+   list. The docs say you can give multiple component names with `--remove`, but I've found that
+   causes the command to have no effect, at least when also using `--groupId`.
 1. Edit the recipes in the `recipes/` dir and change the configuration variables for the components
    as needed. You'll probably need to change most of them. There are some comments in the recipes
    that explain how.

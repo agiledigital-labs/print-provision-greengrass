@@ -75,44 +75,89 @@ function zip_artifacts {
         || fail "Couldn't zip the artifact files for $component_name $component_version in $(pwd)"
 }
 
-# These will hold the arguments to the commands that remove the old deployments and create the new
-# ones. We create the local deployment in a single command so we don't have to make one for each
-# component, which would be slower and add unnecessary complexity.
-remove_args=""
+# Prints the currently-deployed components, one per line.
+function list_components {
+    sudo /greengrass/v2/bin/greengrass-cli component list 2>/dev/null \
+        | grep '^Component Name: ' \
+        | awk '{ print $3 }'
+}
+
+# Poll until Greengrass finishes removing the component.
+# Params:
+#  - The name of the component.
+function wait_until_component_removed {
+    local component_name="$1"
+
+    echo -n "Waiting for $component_name to be removed. If this never finishes, you may have "
+    echo "deployed $component_name remotely. See README.md to remove it manually."
+
+    local ready="false"
+    while [[ $ready != "true" ]]; do
+        # Get the current list of components.
+        components_list="$(list_components)"
+
+        # Check whether the component has been removed from the list.
+        ready="true"
+        for name_in_list in $components_list; do
+            if [[ "$name_in_list" == "$component_name" ]]; then
+                ready="false"
+            fi
+        done
+
+        if [[ $ready != "true" ]]; then
+            echo -n "."
+            sleep 1
+        fi
+    done
+    echo
+}
+
+# If the component is already deployed locally to this device, remove it first. The new version
+# doesn't always seem to get deployed otherwise.
+# Params:
+#  - The name of the component.
+function remove_component {
+    local component_name="$1"
+
+    echo "Removing previous local deployment of $component_name (if any)"
+
+    sudo /greengrass/v2/bin/greengrass-cli deployment create \
+        --remove "$component_name" 2>/dev/null
+
+    wait_until_component_removed "$component_name"
+}
+
+# This will hold the arguments to the command that creates the new deployment. We create the local
+# deployment in a single command so we don't have to make a separate deployment for each component,
+# which would be slower and add unnecessary complexity.
 create_args=""
 
-# Add the components we're going to deploy and make artifact.zip files for them.
-if [[ "$deploy_http_interface" == "true" ]]; then
-    remove_args="$remove_args,io.datapos.ReceiptPrinterHTTPInterface"
-    create_args="$create_args \
-        --merge io.datapos.ReceiptPrinterHTTPInterface=$http_interface_version"
-    zip_artifacts io.datapos.ReceiptPrinterHTTPInterface $http_interface_version
+# Add the component to the list to be deployed, make an artifact.zip for it and remove the
+# currently-deployed version if there is one.
+# Params:
+#  - The name of the component.
+#  - The version of the component.
+function prepare_to_deploy {
+    local component_name="$1"
+    local component_version="$2"
+
+    create_args="$create_args --merge ${component_name}=${component_version}"
+    remove_component "$component_name"
+    zip_artifacts "$component_name" "$component_version"
+}
+
+# Prepare each component.
+if [[ "$deploy_receipt_printer" == "true" ]]; then
+    prepare_to_deploy "io.datapos.ReceiptPrinter" "$receipt_printer_version"
 fi
 
 if [[ "$deploy_mqtt_interface" == "true" ]]; then
-    remove_args="$remove_args,io.datapos.ReceiptPrinterMQTTInterface"
-    create_args="$create_args \
-        --merge io.datapos.ReceiptPrinterMQTTInterface=$mqtt_interface_version"
-    zip_artifacts io.datapos.ReceiptPrinterMQTTInterface $mqtt_interface_version
+    prepare_to_deploy "io.datapos.ReceiptPrinterMQTTInterface" "$mqtt_interface_version"
 fi
 
-if [[ "$deploy_receipt_printer" == "true" ]]; then
-    remove_args="$remove_args,io.datapos.ReceiptPrinter"
-    create_args="$create_args \
-        --merge io.datapos.ReceiptPrinter=$receipt_printer_version"
-    zip_artifacts io.datapos.ReceiptPrinter $receipt_printer_version
+if [[ "$deploy_http_interface" == "true" ]]; then
+    prepare_to_deploy "io.datapos.ReceiptPrinterHTTPInterface" "$http_interface_version"
 fi
-
-# Remove the leading comma.
-remove_args="${remove_args#,}"
-
-# If the any of the components are already deployed locally to this device, remove them first. The
-# new versions don't always seem to get deployed otherwise.
-# TODO: It seems like sometimes the components only get removed if you remove them one-by-one. I
-#       think the docs are just wrong. Or maybe it just takes a long time and we need to poll it.
-echo "Removing previous local deployments of the components (if any)"
-(set -x
-    sudo /greengrass/v2/bin/greengrass-cli deployment create --remove "$remove_args")
 
 # Deploy the components.
 echo "Deploying the components locally"
@@ -129,3 +174,31 @@ echo "Deploying the components locally"
         --recipeDir "$script_dir/recipes" \
         --artifactDir "$script_dir/artifacts" \
         $create_args)
+
+# Poll until it finishes deploying.
+echo "Waiting for the components to be deployed."
+ready="false"
+while [[ $ready != "true" ]]; do
+    # Get the current list of components.
+    components_list="$(list_components)"
+
+    # Check whether the components are all listed yet.
+    ready="true"
+    if [[ "$deploy_receipt_printer" == "true" ]] \
+        && (echo "$components_list" | grep -q '^io.datapos.ReceiptPrinter$'); then
+        ready="false"
+    fi
+    if [[ "$deploy_mqtt_interface" == "true" ]] \
+        && (echo "$components_list" | grep -q '^io.datapos.ReceiptPrinterMQTTInterface$'); then
+        ready="false"
+    fi
+    if [[ "$deploy_http_interface" == "true" ]] \
+        && (echo "$components_list" | grep -q '^io.datapos.ReceiptPrinterHTTPInterface$'); then
+        ready="false"
+    fi
+
+    echo -n "."
+done
+echo
+
+echo "Done"
