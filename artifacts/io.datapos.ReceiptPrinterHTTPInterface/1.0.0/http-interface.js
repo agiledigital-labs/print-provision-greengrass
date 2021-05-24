@@ -85,29 +85,37 @@ let lastHealthStatus = {};
 
 // todo ask haolin if the shadow is used for anything or if it's just so we can check the last
 //      health status in AWS. if the latter, can we configure LogManager to send the logs to AWS
-//      instead? logMessage logs the same information as we store in the shadow. and then we could
+//      instead? updateHealthStatus logs the same information as we store in the shadow. and then we could
 //      remove a decent amount of code from this file and mqtt-interface.js
 //      update: haolin says it's only used manually and no software reads from the shadow
 let thingShadow = undefined;
 
 /**
- * todo i asked haolin about this and hc.sh is probably
- *      https://github.com/DataPOS-Labs/smoupon/blob/master/hc.sh. we don't use smoupon anymore, so
- *      it might be worth changing it to structured logging at some point
- * Log message is in a format for hc.sh to pickup, separated by pipe "|" with specific order:
- * [serviceService]|[status]|[Log Date Time]|[print job id]|[message]
- * 
- * @param {*} status of the message represents: Success or Failed.
- * @param {*} message to be logged.
- * @param {*} printJobId id of the print job.
+ * @param {string} message The message to log.
+ * @param {string?} printJobId The ID of the associated print job. Optional.
  */
-const logMessage = (status, message, printJobId) => {
-  console.log(`${componentVersion}|${status}|${new Date().toISOString()}|${printJobId}|${message}`);
+const log = (message, printJobId) => {
+  console.log(JSON.stringify({
+    componentVersion,
+    lastHealthStatus: lastHealthStatus.status,
+    printJobId: printJobId || 'N/A',
+    message
+  }));
+};
 
+/**
+ * Set the latest the health status data and log it. The health status is reported to Core Services
+ * regularly.
+ *
+ * @param {string} status of the message represents: Success or Failed.
+ * @param {string} message to be logged and reported.
+ * @param {string?} printJobId id of the print job. Optional.
+ */
+const updateHealthStatus = (status, message, printJobId) => {
   lastHealthStatus = {
     status,
     message,
-    printJobId
+    printJobId: printJobId || 'N/A',
   };
 
   // Updates the Thing Shadow's desired state, reports current device's status.
@@ -116,6 +124,8 @@ const logMessage = (status, message, printJobId) => {
       desired: lastHealthStatus
     }
   });
+
+  log(printJobId, message);
 };
 
 /**
@@ -134,20 +144,13 @@ const setUpThingShadow = () => {
   } catch (err) {
     console.error(err);
     
-    logMessage('Failed', `Failed to create Thing Shadow [${err.message}]`, 'N/A');
+    updateHealthStatus('Failed', `Failed to create Thing Shadow [${err.message}]`);
   }
 };
 
 // Handles local print job submission only. todoc update comment
 app.post('/submit', (req, res) => {
-  // todo delete
-  console.log(`req.query`);
-  console.dir(req.query);
-  console.log(`req.body`);
-  console.dir(req.body);
   const data = req.body;
-  console.log('data.remoteJobId');
-  console.dir(data.remoteJobId);
 
   // TODO: Return 400 if typeof data.data !== 'string'
   const printData = urlencode.decode(data.data.replace(/\+/g, '%20'));
@@ -156,7 +159,7 @@ app.post('/submit', (req, res) => {
   // don't come with an ID. Or at least they don't use "remoteJobId".
   if (typeof data.remoteJobId === 'string' &&
     printJobs.ids.includes(data.remoteJobId)) {
-    logMessage('Success', 'Ignoring duplicate message for print job', data.remoteJobId);
+    log('Ignoring duplicate message for print job', data.remoteJobId);
     res.send({ pass: true });
     return;
   }
@@ -170,7 +173,7 @@ app.post('/submit', (req, res) => {
   printJobs.ids.push(id);
   printJobs.data.push(printData);
 
-  logMessage(
+  updateHealthStatus(
     'Success',
     `Added print job to the queue. Job data: [${printData}], queue IDs: ` +
       `[${JSON.stringify(printJobs.ids)}], queue data: [${JSON.stringify(printJobs.data)}]`,
@@ -182,8 +185,7 @@ app.post('/submit', (req, res) => {
 // Handles the lookup for print jobs in the memory.
 app.post('/lookup', (_req, res) => {
   if (printJobs.ids.length !== 0 || printJobs.data.length !== 0) {
-    console.log(
-      `Looked up queue. IDs: [${JSON.stringify(printJobs.ids)}], ` +
+    log(`Looked up queue. IDs: [${JSON.stringify(printJobs.ids)}], ` +
         `data: [${JSON.stringify(printJobs.data)}]`);
   }
 
@@ -202,10 +204,9 @@ app.post('/lookup', (_req, res) => {
 app.post('/update', async (req, res) => {
   try {
     // Local print jobs will have -1 as job id.
-    // todo add a const (or whatever) so the code doesn't have '-1' in several places
+    // TODO: Add a const (or whatever) so the code doesn't have '-1' in several places.
     if (req.body.id !== '-1') {
-      logMessage('Success',
-        `Updating print job [${req.body.id}], status: [${req.body.status}], req.ip: [${req.ip}]...`,
+      log(`Updating print job [${req.body.id}], status: [${req.body.status}], req.ip: [${req.ip}]...`,
         req.body.id);
 
       const params = new URLSearchParams();
@@ -220,7 +221,7 @@ app.post('/update', async (req, res) => {
       const response = await axios.post(`${printServerUrl}/update`, params);
 
       if (response.status !== 200 && req.body.status === 'Completed') {
-        logMessage('Failed',
+        updateHealthStatus('Failed',
           `Print job [${req.body.id}] update failed, but print job succeed, status [${req.body.status}]`,
           req.body.id);
 
@@ -235,24 +236,22 @@ app.post('/update', async (req, res) => {
         printJobs.ids.splice(index, /* deleteCount = */ 1);
         printJobs.data.splice(index, /* deleteCount = */ 1);
 
-        logMessage('Success',
-          `Removed print job from in-memory queue. Index of removed: [${index}], queue IDs: ` +
+        log(`Removed print job from in-memory queue. Index of removed: [${index}], queue IDs: ` +
             `[${JSON.stringify(printJobs.ids)}], queue data: [${JSON.stringify(printJobs.data)}]`,
           req.body.id);
       } else {
         // PrintOS.jar usually makes several of these requests when a job completes, so we can't
         // treat this as an error.
-        logMessage('Success',
-          'Could not find print job in in-memory queue. Assuming this is a redundant update.',
+        log('Could not find print job in in-memory queue. Assuming this is a redundant update.',
           req.body.id);
       }
 
       if (req.body.status === 'Completed') {
-        logMessage('Success', `Print job [${req.body.id}] completed`, req.body.id);
+        updateHealthStatus('Success', `Print job [${req.body.id}] completed`, req.body.id);
 
         return res.send({ pass: true });
       } else {
-        logMessage('Failed', `Print job [${req.body.id}] failed, status [${req.body.status}]`, req.body.id);
+        updateHealthStatus('Failed', `Print job [${req.body.id}] failed, status [${req.body.status}]`, req.body.id);
 
         return res.send({ pass: false });
       }
@@ -267,11 +266,10 @@ app.post('/update', async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    logMessage('Failed',
+    updateHealthStatus('Failed',
       `Failed to update job ` +
         `[${(req && req.body && req.body.id) ? req.body.id : 'unknown ID'}] ` +
-        `[${(err && err.message) ? err.message : JSON.stringify(err)}]`,
-      'N/A');
+        `[${(err && err.message) ? err.message : JSON.stringify(err)}]`);
 
     return res.send({
       pass: false
@@ -283,7 +281,7 @@ app.post('/update', async (req, res) => {
 /** Report the current health status to the DataPOS API. */
 const reportHealthCheck = async () => {
   try { 
-    console.log('Reporting health...');
+    log('Reporting health...');
 
     // Allow auth cookies to be passed.
     axios.create({ withCredentials: true });
@@ -312,7 +310,7 @@ const reportHealthCheck = async () => {
       lastSuccessTime: new Date().toISOString()
     };
 
-    console.log(`Health report data: ${JSON.stringify(data)}`);
+    log(`Health report data: ${JSON.stringify(data)}`);
 
     const hcResponse =
       await axios.post(`${dataposApiUrl}/v1/current-vendor/external-service/status`, 
@@ -324,7 +322,7 @@ const reportHealthCheck = async () => {
           }
         });
 
-    console.log(`Successfully reported health. Response: ${JSON.stringify(hcResponse.data)}`);
+    log(`Successfully reported health. Response: ${JSON.stringify(hcResponse.data)}`);
   } catch (err) {
     console.error('Failed to report health', err.message);
     console.error(err);
@@ -334,7 +332,7 @@ const reportHealthCheck = async () => {
 
 const main = () => {
   // Log the environment vars.
-  console.log(JSON.stringify(process.env));
+  log(JSON.stringify(process.env));
 
   // See https://docs.aws.amazon.com/iot/latest/developerguide/iot-device-shadows.html
   setUpThingShadow();

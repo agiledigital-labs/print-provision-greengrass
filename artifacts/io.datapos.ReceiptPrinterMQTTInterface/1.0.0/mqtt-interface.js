@@ -39,22 +39,41 @@ const deviceOptions = (clientId) => ({
   host: mqttEndpointAddress
 });
 
+let lastHealthStatus = {};
+
 /**
- * todoc update
- * Log message is in a format for hc.sh to pickup, separated by pipe "|" with specific order:
- * [serviceService]|[status]|[Log Date Time]|[print job id]|[message]
- * 
- * @param {*} status of the message represents: Success or Failed.
- * @param {*} message to be logged.
- * @param {*} printJobId id of the print job.
+ * @param {string} message The message to log.
+ * @param {string?} printJobId The ID of the associated print job. Optional.
  */
-const logMessage = (status, message, printJobId) => {
-  console.log(`${componentVersion}|${status}|${new Date().toISOString()}|${printJobId}|${message}`);
+const log = (message, printJobId) => {
+  console.log(JSON.stringify({
+    componentVersion,
+    lastHealthStatus: lastHealthStatus.status,
+    printJobId: printJobId || 'N/A',
+    message
+  }));
+};
+
+/**
+ * Set the latest the health status data and log it.
+ *
+ * @param {string} status of the message represents: Success or Failed.
+ * @param {string} message to be logged and reported.
+ * @param {string?} printJobId The ID of the print job. Optional
+ */
+const updateHealthStatus = (status, message, printJobId) => {
+  lastHealthStatus = {
+    status,
+    message,
+    printJobId: printJobId || 'N/A',
+  };
+
+  log(printJobId, message);
 };
 
 /** Submit the job to be printed (via the HTTP interface). */
 const submitPrintJob = async (id, data) => {
-  logMessage('Success', `Received print job. Submitting it to ReceiptPrinter.`, id);
+  log('Received print job. Submitting it to ReceiptPrinter.', id);
 
   // Forward the print job on to the HTTP interface.
   const params = new URLSearchParams();
@@ -64,9 +83,9 @@ const submitPrintJob = async (id, data) => {
   const response = await axios.post(`${httpInterfaceBaseUrl}/submit`, params);
 
   if (response.status === 200 && response.data.pass) {
-    logMessage('Success', 'Submitted print job.', id);
+    updateHealthStatus('Success', 'Submitted print job.', id);
   } else {
-    logMessage('Failed',
+    updateHealthStatus('Failed',
       `Failed to submit print job. Status code: [${response.status}], ` +
       `response: [${response.data}]`,
       id);
@@ -84,11 +103,11 @@ const main = () => {
  
   // Log when MQTT connects or disconnects.
   device.on('connect', () => {
-    logMessage('Success', `[${thingName}] is connected`, 'N/A');
+    updateHealthStatus('Success', `[${thingName}] is connected`);
   });
 
   device.on('disconnect', () => {
-    logMessage('Failed', `[${thingName}] is disconnected from MQTT`, 'N/A');
+    updateHealthStatus('Failed', `[${thingName}] is disconnected from MQTT`);
   });
 
   // Handle the MQTT messages, which each contain a print job.
@@ -101,9 +120,7 @@ const main = () => {
       // Send the print job along to be printed.
       submitPrintJob(id, data);
     } else {
-      logMessage('Success',
-        `Received message on topic [${topic}] for Thing [${thingName}]. Ignoring.`,
-        'N/A');
+      log(`Received message on topic [${topic}] for Thing [${thingName}]. Ignoring.`);
     }
   });
 
