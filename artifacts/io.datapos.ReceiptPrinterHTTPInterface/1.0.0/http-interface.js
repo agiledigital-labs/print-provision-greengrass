@@ -78,6 +78,9 @@ let lastHealthStatus = {};
 //      instead? updateHealthStatus logs the same information as we store in the shadow. and then we could
 //      remove a decent amount of code from this file and mqtt-interface.js
 //      update: haolin says it's only used manually and no software reads from the shadow
+// todoc we use the thing shadow to also store the latest health data because
+//        - it lets us find that data without searching through the logs
+//        - it's sent to the cloud faster. the logs only get sent when the log file is rotated out
 let thingShadow = undefined;
 
 /**
@@ -142,7 +145,12 @@ const setUpThingShadow = () => {
 app.post('/submit', (req, res) => {
   const data = req.body;
 
-  // TODO: Return 400 if typeof data.data !== 'string'
+  // Return 400 (Bad Request) if the data has an unexpected type.
+  if (typeof data.data !== 'string') {
+    res.sendStatus(400);
+    return;
+  }
+
   const printData = urlencode.decode(data.data.replace(/\+/g, '%20'));
 
   // Check we haven't already received this job. This won't affect local jobs because they probably
@@ -158,7 +166,11 @@ app.post('/submit', (req, res) => {
   // todoc add remoteJobId to the http interface docs. (if there are none, write some)
   const id = data.remoteJobId || '-1';
 
-  // TODO: Return 400 if typeof id !== 'string'
+  // Return 400 (Bad Request) if the ID has an unexpected type.
+  if (typeof id !== 'string') {
+    res.sendStatus(400);
+    return;
+  }
 
   printJobs.ids.push(id);
   printJobs.data.push(printData);
