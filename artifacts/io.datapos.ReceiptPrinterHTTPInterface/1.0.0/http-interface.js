@@ -1,13 +1,3 @@
-// todo what to do about https://github.com/DataPOS-Labs/print-provision#raspberry-pi-deps ? still
-//      make it manual? only part of it? see 'Bootstrap' in
-//      https://docs.aws.amazon.com/greengrass/v2/developerguide/component-recipe-reference.html
-//      and
-//      https://docs.aws.amazon.com/greengrass/v2/developerguide/component-recipe-reference.html#install-lifecycle-definition
-
-// todo same questions about https://github.com/DataPOS-Labs/print-provision#raspberry-pi-deployment-wifi-connection-lost-issue
-//      and https://github.com/DataPOS-Labs/print-provision#pre-provision and probably other things
-//      in the README
-
 const express = require('express');
 const axios = require('axios');
 const awsIot = require('aws-iot-device-sdk');

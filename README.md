@@ -123,11 +123,12 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
    2.1.0.
     - Make a note of the command and options you use when you run `Greengrass.jar`. It's probably
       worth saving the output, too.
-    - Use `--setup-system-service true` so Greengrass will start on boot.
+    - Use `--setup-system-service true` so Greengrass will start on boot. The installer will create
+      a systemd service for it.
     - Use the `ap-southeast-2` region.
     - Install to the default location, `/greengrass/v2`.
     - Either use `--tes-role-name ReceiptPrinterGreengrassV2TokenExchangeRole` or edit the
-      `device_role` const in `deploy.sh`.
+      `device_role` global in `deploy.sh`.
     - For example:
       ```
       sudo -E java -Droot="/greengrass/v2" -Dlog.store=FILE \
@@ -142,7 +143,15 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
         --deploy-dev-tools true \
         --setup-system-service true
       ```
+1. Add the Raspberry Pi as a device in your printos-serverless-service instance.
+   1. In DynamoDB, find the `printClientsTable-[stage]` table.
+   1. Add a new item with the Raspberry Pi's Thing Name as the `destination`. Make a note of the
+      `password` you choose as you will need it when you deploy this project to the Pi. If you have
+      multiple devices in the same Thing Group, they currently all need to use the same password.
 1. Deploy the PrintOS software to the Raspberry Pi by following the Deploying section below.
+
+If you need to install a driver for an Epson TM-T20 printer, see
+<https://github.com/DataPOS-Labs/print-provision#raspberry-pi-deps>.
 
 ## Deploying
 
