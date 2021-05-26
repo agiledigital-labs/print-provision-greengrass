@@ -80,9 +80,9 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
 │     Used by deploy.sh. Specifies the components to be deployed, among other things.
 └── recipes/
     │ The config and metadata for the Greengrass components.
-    ├── io.datapos.ReceiptPrinterMQTTInterface-1.0.0.yaml
-    ├── io.datapos.ReceiptPrinterHTTPInterface-1.0.0.yaml
-    └── io.datapos.ReceiptPrinter-1.0.0.yaml
+    ├── io.datapos.ReceiptPrinterMQTTInterface.yaml
+    ├── io.datapos.ReceiptPrinterHTTPInterface.yaml
+    └── io.datapos.ReceiptPrinter.yaml
 ```
 
 ## Setting Up a Raspberry Pi
@@ -157,7 +157,7 @@ If you need to install a driver for an Epson TM-T20 printer, see
 
 ### For Development
 
-1. Run `npm install` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and in
+1. Run `nvm use` and then `npm install` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and in
    `artifacts/io.datapos.ReceiptPrinterHTTPInterface`.
 1. If you've deployed any of the components through AWS (i.e. not locally), you'll need to remove
    them from the device before deploying different versions of them locally.
@@ -178,16 +178,14 @@ If you need to install a driver for an Epson TM-T20 printer, see
 
 ### For Production
 
-1. Checkout the `released` branch. See the Releasing section below if you want to deploy a component 
-   version that hasn't been released yet.
-1. Run `npm ci` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and in
+1. Checkout the tag for the version you want to deploy, which is probably the most recent release
+   tag. See the Releasing section below if you want to deploy a version that hasn't been released
+   yet.
+1. Run `nvm use` and then `npm ci` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and in
    `artifacts/io.datapos.ReceiptPrinterHTTPInterface`.
 1. Edit `deployment.yaml`:
    1. Change the `targetArn` field to the ARN of your AWS IoT Thing Group. You can find it at
       <https://console.aws.amazon.com/iot/home#/thingGroupHub>.
-   1. Change the `componentVersion` fields if you want to deploy different versions of the
-      components. If you do, you currently need to change the version numbers in `deploy.sh` as
-      well.
    1. Change the configuration variables for the components as needed. You'll probably need to
       change most of them. There are some comments in the file that explain how.
 1. If you haven't already, configure the AWS CLI to use the correct account/user.
@@ -229,22 +227,15 @@ useful details.
 
 ## Releasing
 
-1. If the changes for the component to be released doesn't warrant a new major version number
-   (following semver), copy the in-progress version of that component and give the copy the
-   appropriate version number. Commit this to `main`.
-   
-   For example,
-   ```bash
-   cp recipes/io.datapos.ReceiptPrinter-2.0.0.yaml recipes/io.datapos.ReceiptPrinter-1.0.2.yaml
-   cp -r artifacts/io.datapos.ReceiptPrinter/2.0.0 artifacts/io.datapos.ReceiptPrinter/1.0.2
-   ```
-   Then change the version number in `recipes/io.datapos.ReceiptPrinter-1.0.2.yaml` as well. You may
-   need to change it in multiple places in the recipe file, e.g. the S3 URL.
-1. Update the version numbers in `deploy.sh` and `deploy-local-to-pi.sh` if necessary.
-1. Update the dependencies in the recipe files if necessary.
-1. Merge the component to be released into the `released` branch. Don't include any of the other
-   in-progress versions in the merge, but do include any non-component files such as the deployment
-   scripts.
+1. Following semver, bump the version numbers of every component, even if they haven't been changed
+   since their last release. The release and deploy processes are a bit easier if we keep the
+   version numbers in sync and so far we don't have a good reason not to.
+   1. Change the version numbers in the `recipes/` files. You may need to change it in multiple
+      places in some of them, e.g. in the S3 URLs.
+   1. Change the version numbers in `deploy.sh` and `deploy-local-to-pi.sh`.
+   1. Change the version numbers in `deployment.yaml`.
+1. Commit to `main`.
+1. Tag your commit with the new version number.
 
 ## Troubleshooting
 
@@ -270,8 +261,8 @@ For testing, you can configure the ReceiptPrinter component to print to PDF. How
 always be blank, so you still need a real receipt printer to test the output.
 
 1. The `printer` configuration variable in
-   [io.datapos.ReceiptPrinter-1.0.0.yaml](recipes/io.datapos.ReceiptPrinter-1.0.0.yaml) needs to be
-   set to `PDF`, which it is by default.
+   [io.datapos.ReceiptPrinter.yaml](recipes/io.datapos.ReceiptPrinter.yaml) needs to be set to
+   `PDF`, which it is by default.
 1. Install the print-to-PDF driver on your test device: `sudo apt install cups cups-bsd
    printer-driver-cups-pdf`
 1. In `/etc/cups/cups-pdf.conf` on your device, comment out the line `Out ${HOME}/PDF`. That

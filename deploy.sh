@@ -128,20 +128,17 @@ function upload_artifacts_to_s3 {
     local component_version="$2"
 
     # Make the zip file to upload.
-    artifacts_path="artifacts/$component_name/$component_version"
-    zip_path="$work_dir/$component_name-$component_version-artifact.zip"
+    local zip_path="$work_dir/$component_name-$component_version-artifact.zip"
 
     echo "Archiving the artifact files for $component_name (version $component_version)"
-    cd "$script_dir/$artifacts_path"
+    cd "$script_dir/artifacts/$component_name"
     zip --quiet --recurse-paths "$zip_path" .
     cd -
 
     # Upload to S3.
     echo "Uploading the archive to S3"
-    aws s3 cp "$zip_path" "s3://$s3_bucket/$artifacts_path/artifact.zip"
-
-    # Clean up.
-    rm "$zip_path"
+    aws s3 cp "$zip_path" \
+        "s3://$s3_bucket/artifacts/$component_name/$component_version/artifact.zip"
 }
 
 # Create a new component in the AWS Greengrass service.
@@ -159,7 +156,7 @@ function create_component_in_greengrass {
     upload_artifacts_to_s3 "$component_name" "$component_version"
 
     # Make a copy of the component's recipe file and insert the name of the S3 bucket we're using.
-    recipe_filename="$component_name-$component_version.yaml"
+    recipe_filename="$component_name.yaml"
 
     sed "s/S3_BUCKET_NAME/$s3_bucket/g" "$script_dir/recipes/$recipe_filename" \
         > "$work_dir/$recipe_filename"

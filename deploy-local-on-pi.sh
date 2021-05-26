@@ -31,7 +31,7 @@ function fail {
 }
 
 # Check this script is running on the Pi.
-uname -a | grep raspberrypi > /dev/null || fail "Run this on the Raspberry Pi."
+uname -a | grep raspberrypi > /dev/null || fail "Run this on your Raspberry Pi."
 
 # Check `zip` is installed.
 which zip > /dev/null \
@@ -62,17 +62,21 @@ function zip_artifacts {
     local component_name="$1"
     local component_version="$2"
 
-    local artifacts_dir="$script_dir/artifacts/$component_name/$component_version"
+    local artifacts_dir="$script_dir/artifacts/$component_name"
 
     echo "Zipping $artifacts_dir"
     cd "$artifacts_dir" || fail "Failed to cd into $artifacts_dir"
 
     # If there's an old one, delete it first.
-    rm -f artifact.zip
+    rm -rf "$component_version"
 
     # Make the zip.
     zip --quiet --recurse-paths --compression-method=store artifact.zip . \
-        || fail "Couldn't zip the artifact files for $component_name $component_version in $(pwd)"
+        || fail "Couldn't zip the artifact files for $component_name in $(pwd)"
+
+    # The Greengrass CLI expects it to be in a dir with the version number as its name.
+    mkdir -p "$component_version"
+    mv artifact.zip "$component_version/artifact.zip"
 }
 
 # Prints the currently-deployed components, one per line.
@@ -185,15 +189,15 @@ while [[ $ready != "true" ]]; do
     # Check whether the components are all listed yet.
     ready="true"
     if [[ "$deploy_receipt_printer" == "true" ]] \
-        && (echo "$components_list" | grep -q '^io.datapos.ReceiptPrinter$'); then
+        && ! (echo "$components_list" | grep -q '^io.datapos.ReceiptPrinter$'); then
         ready="false"
     fi
     if [[ "$deploy_mqtt_interface" == "true" ]] \
-        && (echo "$components_list" | grep -q '^io.datapos.ReceiptPrinterMQTTInterface$'); then
+        && ! (echo "$components_list" | grep -q '^io.datapos.ReceiptPrinterMQTTInterface$'); then
         ready="false"
     fi
     if [[ "$deploy_http_interface" == "true" ]] \
-        && (echo "$components_list" | grep -q '^io.datapos.ReceiptPrinterHTTPInterface$'); then
+        && ! (echo "$components_list" | grep -q '^io.datapos.ReceiptPrinterHTTPInterface$'); then
         ready="false"
     fi
 

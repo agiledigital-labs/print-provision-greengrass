@@ -111,10 +111,14 @@ const updateHealthStatus = (status, message, printJobId) => {
     printJobId: printJobId || 'N/A',
   };
 
-  // Updates the Thing Shadow's desired state, reports current device's status.
+  // Updates the Thing Shadow's state, reports current device's status.
+  // TODO: From the docs, it seems likely that `update` won't retry if there's a temporary network
+  //       issue or some failure like that. The simplest fix might be to try to update the shadow in
+  //       `reportHealthCheck` as well.
+  // todo use different named shadows for mqtt and http so they don't overwrite each other's shadow data. will need to upgrade to the v2 sdk.
   thingShadow && thingShadow.update(thingName, {
     state: {
-      desired: lastHealthStatus
+      reported: lastHealthStatus
     }
   });
 
