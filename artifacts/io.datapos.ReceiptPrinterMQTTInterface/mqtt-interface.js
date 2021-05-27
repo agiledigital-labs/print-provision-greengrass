@@ -1,6 +1,7 @@
 const axios = require('axios');
 const awsIot = require('aws-iot-device-sdk');
 const argsParser = require('args-parser');
+const healthReporting = require('health-reporting');
 
 /** The URL for the ReceiptPrinterHTTPInterface component. */
 const httpInterfaceBaseUrl = 'http://localhost:8083';
@@ -13,6 +14,25 @@ const printJobTopic = `print-job/${thingName}`;
 
 /** CLI options */
 const args = argsParser(process.argv);
+
+/**
+ * The base URL for the DataPOS Public API, which is exposed by Core Services
+ * (https://stash.agiledigital.com.au/projects/QFX/repos/merivale/browse/server/modules/core-services).
+ * Used to report the health status of the device.
+ */
+const dataposApiUrl = args['datapos-api-url'];
+
+/**
+ * The vendor's username for authenticating with the DataPOS Public API. Used to report the health
+ * status of the device.
+ */
+const vendorUsername = args['vendor-username'];
+
+/**
+ * The vendor's password for authenticating with the DataPOS Public API. Used to report the health
+ * status of the device.
+ */
+const vendorPassword = args['vendor-password'];
 
 /**
  * The address to connect to the AWS MQTT broker. You can find this in the AWS console at
@@ -39,37 +59,15 @@ const deviceOptions = (clientId) => ({
   host: mqttEndpointAddress
 });
 
-let lastHealthStatus = {};
-
 /**
  * @param {string} message The message to log.
  * @param {string?} printJobId The ID of the associated print job. Optional.
  */
-const log = (message, printJobId) => {
-  console.log(JSON.stringify({
-    componentVersion,
-    lastHealthStatus: lastHealthStatus.status,
-    printJobId: printJobId || 'N/A',
-    message
-  }));
-};
+const log = (message, printJobId) =>
+    healthReporting.log(componentVersion, message, printJobId);
 
-/**
- * Set the latest the health status data and log it.
- *
- * @param {string} status of the message represents: Success or Failed.
- * @param {string} message to be logged and reported.
- * @param {string?} printJobId The ID of the print job. Optional
- */
-const updateHealthStatus = (status, message, printJobId) => {
-  lastHealthStatus = {
-    status,
-    message,
-    printJobId: printJobId || 'N/A',
-  };
-
-  log(printJobId, message);
-};
+const updateHealthStatus = (status, message, printJobId) =>
+    healthReporting.updateHealthStatus(componentVersion, status, message, printJobId);
 
 /** Submit the job to be printed (via the HTTP interface). */
 const submitPrintJob = async (id, data) => {
@@ -96,6 +94,13 @@ const main = () => {
   // Log the environment vars.
   console.log(JSON.stringify(process.env));
 
+  // TODO: Check that all of the CLI options were passed in.
+
+  // Regularly send the health status of this component to the server.
+  healthReporting.startReporting(
+      'mqtt', componentVersion, dataposApiUrl, vendorUsername, vendorPassword, mqttEndpointAddress);
+
+  // Set up MQTT.
   const device = new awsIot.device(deviceOptions(`${thingName}-device`));
 
   // Subscribe to the print job topic for this device.

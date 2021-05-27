@@ -5,10 +5,11 @@
   "main": "http-interface.js",
   "dependencies": {
     "args-parser": "^1.1.0",
-    "aws-iot-device-sdk": "^2.2.1",
     "aws-sdk": "^2.210.0",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
+    "body-parser": "^1.19.0",
     "express": "^4.16.3",
+    "health-reporting": "file:../../health-reporting",
     "lodash": "^4.17.5",
     "query-string": "^5.0.1",
     "urlencode": "^1.1.0",

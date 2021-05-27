@@ -1,19 +1,15 @@
 const express = require('express');
 const axios = require('axios');
-const awsIot = require('aws-iot-device-sdk');
 const bodyParser = require('body-parser');
 const fp = require('lodash/fp');
 const urlencode = require('urlencode');
 const argsParser = require('args-parser');
+const healthReporting = require('health-reporting');
 
-const app = express();
 const args = argsParser(process.argv);
 
-/** The duration in milliseconds between reporting the device status to core-services. */
-const healthHeartBeatInterval = 60 * 1000;
-
-/** The name of this IoT Thing (i.e. device, e.g. a Raspberry Pi) in AWS. */
-const thingName = process.env.AWS_IOT_THING_NAME;
+/** The port to serve the HTTP interface on. */
+const httpPort = 8083;
 
 /**
  * The base URL for your printos-serverless-service
@@ -54,99 +50,24 @@ const mqttEndpointAddress = args['mqtt-endpoint-address'];
 /** The version number of this component. */
 const componentVersion = args['component-version'];
 
-app.use(bodyParser.urlencoded({ extended: true }));
-
-const deviceOptions = (clientId) => ({
-  clientId,
-  // The README tells you to install to /greengrass/v2, so these paths should work.
-  keyPath: '/greengrass/v2/privKey.key',
-  certPath: '/greengrass/v2/thingCert.crt',
-  caPath: '/greengrass/v2/rootCA.pem',
-  host: mqttEndpointAddress
-});
-
 // Holds print jobs in a specific format that is required by PrintOS.jar.
 let printJobs = {
   ids: [],
   data: []
 };
 
-let lastHealthStatus = {};
-
-// todo ask haolin if the shadow is used for anything or if it's just so we can check the last
-//      health status in AWS. if the latter, can we configure LogManager to send the logs to AWS
-//      instead? updateHealthStatus logs the same information as we store in the shadow. and then we could
-//      remove a decent amount of code from this file and mqtt-interface.js
-//      update: haolin says it's only used manually and no software reads from the shadow
-// todoc we use the thing shadow to also store the latest health data because
-//        - it lets us find that data without searching through the logs
-//        - it's sent to the cloud faster. the logs only get sent when the log file is rotated out
-let thingShadow = undefined;
-
 /**
  * @param {string} message The message to log.
  * @param {string?} printJobId The ID of the associated print job. Optional.
  */
-const log = (message, printJobId) => {
-  console.log(JSON.stringify({
-    componentVersion,
-    lastHealthStatus: lastHealthStatus.status,
-    printJobId: printJobId || 'N/A',
-    message
-  }));
-};
+const log = (message, printJobId) =>
+    healthReporting.log(componentVersion, message, printJobId);
 
-/**
- * Set the latest the health status data and log it. The health status is reported to Core Services
- * regularly.
- *
- * @param {string} status of the message represents: Success or Failed.
- * @param {string} message to be logged and reported.
- * @param {string?} printJobId id of the print job. Optional.
- */
-const updateHealthStatus = (status, message, printJobId) => {
-  lastHealthStatus = {
-    status,
-    message,
-    printJobId: printJobId || 'N/A',
-  };
+const updateHealthStatus = (status, message, printJobId) =>
+    healthReporting.updateHealthStatus(componentVersion, status, message, printJobId);
 
-  // Updates the Thing Shadow's state, reports current device's status.
-  // TODO: From the docs, it seems likely that `update` won't retry if there's a temporary network
-  //       issue or some failure like that. The simplest fix might be to try to update the shadow in
-  //       `reportHealthCheck` as well.
-  // todo use different named shadows for mqtt and http so they don't overwrite each other's shadow data. will need to upgrade to the v2 sdk.
-  thingShadow && thingShadow.update(thingName, {
-    state: {
-      reported: lastHealthStatus
-    }
-  });
-
-  log(printJobId, message);
-};
-
-/**
- * Create and register the Thing Shadow, which records the most recent print status for the device.
- *
- * The Thing Shadow document can be checked in the AWS IoT Thing console. It will likely be under
- * the name "Classic Shadow".
- */
-const setUpThingShadow = () => {
-  try {  
-    // Device thing shadow that reports the device current print status.
-    thingShadow = new awsIot.thingShadow(deviceOptions(`${thingName}-shadow`));
-
-    // Registers the Thing Shadow with the Thing name.
-    thingShadow.register(thingName);
-  } catch (err) {
-    console.error(err);
-    
-    updateHealthStatus('Failed', `Failed to create Thing Shadow [${err.message}]`);
-  }
-};
-
-// Handles local print job submission only. todoc update comment
-app.post('/submit', (req, res) => {
+/** Handle submission of a print job. Can be either a remote (from the cloud) or local job. */
+const handleSubmit = async (req, res) => {
   const data = req.body;
 
   // Return 400 (Bad Request) if the data has an unexpected type.
@@ -186,10 +107,14 @@ app.post('/submit', (req, res) => {
     id);
 
   res.send({ pass: true });
-});
+};
 
-// Handles the lookup for print jobs in the memory.
-app.post('/lookup', (_req, res) => {
+/**
+ * Handle a request to look up the print jobs in memory. The ReceiptPrinter component polls this
+ * regularly and will print the jobs it returns.
+ */
+const handleLookup = async (_req, res) => {
+  // Log a message if there were jobs in the queue.
   if (printJobs.ids.length !== 0 || printJobs.data.length !== 0) {
     log(`Looked up queue. IDs: [${JSON.stringify(printJobs.ids)}], ` +
         `data: [${JSON.stringify(printJobs.data)}]`);
@@ -201,13 +126,14 @@ app.post('/lookup', (_req, res) => {
     ids: printJobs.ids,
     data: printJobs.data
   });
-});
+};
 
-// todoc check slack msgs from haolin about this and add more info/context to these comments, e.g.
-//      explain why we need this and what it's currently being used for
-// Called by local only and update the print job remotely.
-// Updates the remote print job status, so it will not be retried.
-app.post('/update', async (req, res) => {
+/**
+ * Handle a request to report the status of a print job to the print server. The main purpose of
+ * this is to let the print server know when a job is completed so it won't keep retrying it. Only
+ * the ReceiptPrinter component makes these requests.
+ */
+const handleUpdate = async (req, res) => {
   try {
     // Local print jobs will have -1 as job id.
     // TODO: Add a const (or whatever) so the code doesn't have '-1' in several places.
@@ -231,9 +157,7 @@ app.post('/update', async (req, res) => {
           `Print job [${req.body.id}] update failed, but print job succeed, status [${req.body.status}]`,
           req.body.id);
 
-        return res.send({
-          pass: false
-        });
+        return res.send({ pass: false });
       }
 
       // Remove the print job from the in-memory queue, since it was updated successfully.
@@ -257,7 +181,9 @@ app.post('/update', async (req, res) => {
 
         return res.send({ pass: true });
       } else {
-        updateHealthStatus('Failed', `Print job [${req.body.id}] failed, status [${req.body.status}]`, req.body.id);
+        updateHealthStatus('Failed',
+            `Print job [${req.body.id}] failed, status [${req.body.status}]`,
+            req.body.id);
 
         return res.send({ pass: false });
       }
@@ -281,73 +207,31 @@ app.post('/update', async (req, res) => {
       pass: false
     });
   }
-});
-
-// todo extract this into a library so mqtt-interface.js can use it as well
-/** Report the current health status to the DataPOS API. */
-const reportHealthCheck = async () => {
-  try { 
-    log('Reporting health...');
-
-    // Allow auth cookies to be passed.
-    axios.create({ withCredentials: true });
-
-    // Authenticate with the vendor credentials.
-    const params = new URLSearchParams();
-    params.append('username', vendorUsername);
-    params.append('password', vendorPassword);
-
-    const response = await axios.post(`${dataposApiUrl}/v1/current-vendor/login`, params);
-
-    const authCookie = response.headers['set-cookie'][0];
-
-    // If any of the fields are undefined, the request will fail with a 400 error, so default to
-    // success.
-    const data = {
-      externalService: {
-        serviceVendorUser: vendorUsername,
-        serviceType: `print-${thingName}-http`,
-        serviceVersion: componentVersion
-      },
-      status: lastHealthStatus.status || 'Success',
-      message: lastHealthStatus.message || '',
-      lastSuccessId: lastHealthStatus.printJobId ?
-          lastHealthStatus.printJobId.toString() : "",
-      lastSuccessTime: new Date().toISOString()
-    };
-
-    log(`Health report data: ${JSON.stringify(data)}`);
-
-    const hcResponse =
-      await axios.post(`${dataposApiUrl}/v1/current-vendor/external-service/status`, 
-        data,
-        {
-          headers: {
-            Cookie: authCookie,
-            'Content-Type': 'application/json'
-          }
-        });
-
-    log(`Successfully reported health. Response: ${JSON.stringify(hcResponse.data)}`);
-  } catch (err) {
-    console.error('Failed to report health', err.message);
-    console.error(err);
-    console.dir(err.response);
-  }
 };
 
 const main = () => {
   // Log the environment vars.
   log(JSON.stringify(process.env));
 
-  // See https://docs.aws.amazon.com/iot/latest/developerguide/iot-device-shadows.html
-  setUpThingShadow();
+  // TODO: Check that all of the CLI options were passed in.
 
-  // Report the device's health every healthHeartBeatInterval ms.
-  setInterval(reportHealthCheck, healthHeartBeatInterval);
+  // Regularly send the health status of this component to the server.
+  healthReporting.startReporting(
+      'http', componentVersion, dataposApiUrl, vendorUsername, vendorPassword, mqttEndpointAddress);
+
+  // Set up the HTTP server.
+  const app = express();
+
+  // Parse incoming requests with urlencoded payloads.
+  app.use(bodyParser.urlencoded({ extended: true }));
+
+  // Set up the routes.
+  app.post('/submit', handleSubmit);
+  app.post('/lookup', handleLookup);
+  app.post('/update', handleUpdate);
 
   // Start the HTTP server.
-  app.listen(8083);
+  app.listen(httpPort);
 };
 
 main();

@@ -8,6 +8,16 @@ ComponentPublisher: DataPOS
 # TODO: Add a dependency on ReceiptPrinterHTTPInterface so you can't install incompatible versions.
 ComponentConfiguration:
   DefaultConfiguration:
+    # The base URL for the DataPOS Public API, which is exposed by Core Services
+    # (https://stash.agiledigital.com.au/projects/QFX/repos/merivale/browse/server/modules/core-services).
+    # Used to report the health status of the device.
+    dataposApiUrl: https://public-api.shared.staging.datapos.io
+    # The vendor's username for authenticating with the DataPOS Public API. Used to report the
+    # health status of the device.
+    vendorUsername: brod
+    # The vendor's password for authenticating with the DataPOS Public API. Used to report the
+    # health status of the device.
+    vendorPassword: '1234'
     # The address to connect to the AWS MQTT broker. You can find this in the AWS console at
     #   https://console.aws.amazon.com/iot/home#/settings
     # or by running
@@ -15,6 +25,8 @@ ComponentConfiguration:
     # See also:
     #   https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
     mqttEndpointAddress: 'a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com'
+    # Must be the same as the ComponentVersion field above.
+    componentVersion: "1.0.0"
 Manifests:
   - Platform:
       os: linux
@@ -26,5 +38,8 @@ Manifests:
     Lifecycle:
       Run: |
         node {artifacts:decompressedPath}/artifact/mqtt-interface.js \
+          --datapos-api-url='{configuration:/dataposApiUrl}' \
+          --vendor-username='{configuration:/vendorUsername}' \
+          --vendor-password='{configuration:/vendorPassword}' \
           --mqtt-endpoint-address='{configuration:/mqttEndpointAddress}' \
-          --component-version='1.0.0'
+          --component-version='{configuration:/componentVersion}'

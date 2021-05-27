@@ -30,6 +30,8 @@ ComponentConfiguration:
     # See also:
     #   https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
     mqttEndpointAddress: 'a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com'
+    # Must be the same as the ComponentVersion field above.
+    componentVersion: "1.0.0"
 Manifests:
   - Platform:
       os: linux
@@ -46,4 +48,4 @@ Manifests:
           --vendor-username='{configuration:/vendorUsername}' \
           --vendor-password='{configuration:/vendorPassword}' \
           --mqtt-endpoint-address='{configuration:/mqttEndpointAddress}' \
-          --component-version='1.0.0'
+          --component-version='{configuration:/componentVersion}'

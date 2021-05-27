@@ -59,24 +59,43 @@ components:
       #       We might also be able to use the AWS SDK, but I'm not sure if that will work in the
       #       component code (and it's yet another dependency):
       #       https://github.com/DataPOS-Labs/print-provision/blob/175a6b90c20b45113e50b059e8d8ad8ca9a7b825/provision.js#L81
+      # componentVersion:
+      #   Must be the same as the componentVersion field above.
       merge: >-
         {
           "printServerUrl": "https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev",
           "dataposApiUrl": "https://public-api.shared.staging.datapos.io",
           "vendorUsername": "brod",
           "vendorPassword": "1234",
-          "mqttEndpointAddress": "a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com"
+          "mqttEndpointAddress": "a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com",
+          "componentVersion": "1.0.0"
         }
   io.datapos.ReceiptPrinterMQTTInterface:
     componentVersion: "1.0.0"
     configurationUpdate:
+      # dataposApiUrl:
+      #   The base URL for the DataPOS Public API, which is exposed by Core Services
+      #   (https://stash.agiledigital.com.au/projects/QFX/repos/merivale/browse/server/modules/core-services).
+      #   Used to report the health status of the device.
+      # vendorUsername:
+      #   The vendor's username for authenticating with the DataPOS Public API. Used to report the
+      #   health status of the device.
+      # vendorPassword:
+      #   The vendor's password for authenticating with the DataPOS Public API. Used to report the
+      #   health status of the device.
       # mqttEndpointAddress:
       #   The address to connect to the AWS MQTT broker. You can find this in the AWS console or by
       #   running
       #       aws iot describe-endpoint --endpoint-type iot:Data-ATS
       #   See also:
       #   https://docs.aws.amazon.com/iot/latest/developerguide/iot-connect-devices.html#iot-connect-device-endpoints
+      # componentVersion:
+      #   Must be the same as the componentVersion field above.
       merge: >-
         {
-          "mqttEndpointAddress": "a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com"
+          "dataposApiUrl": "https://public-api.shared.staging.datapos.io",
+          "vendorUsername": "brod",
+          "vendorPassword": "1234",
+          "mqttEndpointAddress": "a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com",
+          "componentVersion": "1.0.0"
         }

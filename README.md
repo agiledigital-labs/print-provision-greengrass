@@ -157,7 +157,8 @@ If you need to install a driver for an Epson TM-T20 printer, see
 
 ### For Development
 
-1. Run `nvm use` and then `npm install` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and in
+1. Run `nvm use` in the root dir to switch to the project's Node.js version.
+1. Run `npm install` in `health-reporting`, `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and
    `artifacts/io.datapos.ReceiptPrinterHTTPInterface`.
 1. If you've deployed any of the components through AWS (i.e. not locally), you'll need to remove
    them from the device before deploying different versions of them locally.
@@ -181,7 +182,8 @@ If you need to install a driver for an Epson TM-T20 printer, see
 1. Checkout the tag for the version you want to deploy, which is probably the most recent release
    tag. See the Releasing section below if you want to deploy a version that hasn't been released
    yet.
-1. Run `nvm use` and then `npm ci` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and in
+1. Run `nvm use` in the root dir to switch to the project's Node.js version.
+1. Run `npm ci` in `health-reporting`, `artifacts/io.datapos.ReceiptPrinterMQTTInterface` and
    `artifacts/io.datapos.ReceiptPrinterHTTPInterface`.
 1. Edit `deployment.yaml`:
    1. Change the `targetArn` field to the ARN of your AWS IoT Thing Group. You can find it at

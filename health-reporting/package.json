@@ -1,0 +1,10 @@
+{
+  "name": "health-reporting",
+  "version": "1.0.0",
+  "description": "Report the health status of a component through AWS IoT (device shadow) and the DataPOS Public API.",
+  "main": "health-reporting.js",
+  "dependencies": {
+    "aws-iot-device-sdk": "^2.2.8",
+    "axios": "^0.21.1"
+  }
+}
