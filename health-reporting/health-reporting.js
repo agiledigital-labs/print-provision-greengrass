@@ -1,4 +1,4 @@
-const awsIot = require('aws-iot-device-sdk');
+const awsIot = require('aws-iot-device-sdk-v2');
 const axios = require('axios');
 
 /** The duration in milliseconds between reporting the device status to core-services. */
@@ -9,16 +9,8 @@ const thingName = process.env.AWS_IOT_THING_NAME;
 
 let lastHealthStatus = {};
 
-let thingShadow = undefined;
-
-const deviceOptions = (clientId, mqttEndpointAddress) => ({
-    clientId,
-    // The README tells you to install to /greengrass/v2, so these paths should work.
-    keyPath: '/greengrass/v2/privKey.key',
-    certPath: '/greengrass/v2/thingCert.crt',
-    caPath: '/greengrass/v2/rootCA.pem',
-    host: mqttEndpointAddress
-});
+/** Used to update the Thing Shadow in AWS IoT. */
+let shadowClient = undefined;
 
 /**
  * @param {string} componentVersion The version string of the Greengrass component.
@@ -38,53 +30,77 @@ exports.log = (componentVersion, message, printJobId) => {
  * Set the latest the health status data and log it. The health status is reported to Core Services
  * regularly.
  *
+ * @param {string} componentShortName A short name to identify the Greengrass component. Included in
+ *                 the name of the Thing Shadow.
  * @param {string} componentVersion The version string of the Greengrass component.
  * @param {string} status of the message represents: Success or Failed.
  * @param {string} message to be logged and reported.
  * @param {string?} printJobId id of the print job. Optional.
  */
-exports.updateHealthStatus = (componentVersion, status, message, printJobId) => {
+exports.updateHealthStatus = async (componentShortName, componentVersion, status, message, printJobId) => {
     lastHealthStatus = {
         status,
         message,
         printJobId: printJobId || 'N/A',
     };
 
-    // Updates the Thing Shadow's state, reports current device's status.
-    // TODO: From the docs, it seems likely that `update` won't retry if there's a temporary network
-    //       issue or some failure like that. The simplest fix might be to try to update the shadow in
-    //       `reportHealthCheck` as well.
-    // todo use different named shadows for mqtt and http so they don't overwrite each other's shadow data. will need to upgrade to the v2 sdk.
-    thingShadow && thingShadow.update(thingName, {
-        state: {
-            reported: lastHealthStatus
-        }
-    });
-
     exports.log(componentVersion, printJobId, message);
+
+    // Update the Thing Shadow's state to store current device's status.
+    if (shadowClient) {
+        await shadowClient.publishUpdateNamedShadow({
+                thingName,
+                shadowName: `${componentShortName}-health`,
+                state: {
+                    reported: lastHealthStatus
+                }
+            },
+            // If the message fails, retry until it succeeds. It's OK if the other end receives
+            // duplicates because updating a shadow is idempotent.
+            awsIot.mqtt.QoS.AtLeastOnce);
+    }
 };
 
 /**
- * Create and register the Thing Shadow, which records the most recent print status for the device.
+ * Initialise `shadowClient`, which we use to update the Thing Shadow to record the most recent
+ * print status for the component. You can check the Thing Shadow document in the AWS IoT Thing
+ * console.
  *
- * The Thing Shadow document can be checked in the AWS IoT Thing console. It will likely be under
- * the name "Classic Shadow".
-
+ * @see awsIot.iotshadow.IotShadowClient
  * @see https://docs.aws.amazon.com/iot/latest/developerguide/iot-device-shadows.html
  */
-const setUpThingShadow = (componentShortName, componentVersion, mqttEndpointAddress) => {
+const setUpThingShadow = async (componentShortName, componentVersion, mqttEndpointAddress) => {
     try {
-        // Device thing shadow that reports the device current print status.
-        thingShadow = new awsIot.thingShadow(
-            deviceOptions(`${thingName}-shadow-${componentShortName}`, mqttEndpointAddress));
+        // Create an MQTT connection to the AWS IoT service.
+        const builder = awsIot.iot.AwsIotMqttConnectionConfigBuilder.new_mtls_builder_from_path(
+            // The README tells you to install to /greengrass/v2 and the docs say that these
+            // certs/keys will be in the install dir with these filenames, so these paths should
+            // work. The same goes for rootCA.pem below.
+            '/greengrass/v2/thingCert.crt',
+            '/greengrass/v2/privKey.key');
 
-        // Registers the Thing Shadow with the Thing name.
-        thingShadow.register(thingName);
+        builder.with_certificate_authority_from_path(undefined, '/greengrass/v2/rootCA.pem');
+        builder.with_endpoint(mqttEndpointAddress);
+        builder.with_client_id(`${thingName}-${componentShortName}-health`);
+
+        // Send messages queued while offline after reconnecting.
+        builder.with_clean_session(false);
+
+        const client = new awsIot.mqtt.MqttClient(new awsIot.io.ClientBootstrap());
+        const connection = client.new_connection(builder.build());
+
+        await connection.connect();
+
+        // We'll use this in other functions to store the health data in the shadow.
+        shadowClient = new awsIot.iotshadow.IotShadowClient(connection);
     } catch (err) {
         console.error(err);
 
-        exports.updateHealthStatus(
-            componentVersion, 'Failed', `Failed to create Thing Shadow [${err.message}]`);
+        await exports.updateHealthStatus(
+            componentShortName,
+            componentVersion,
+            'Failed',
+            `Failed to create Thing Shadow [${err.message}]`);
     }
 };
 
@@ -155,18 +171,25 @@ const reportHealthCheck =
  * The shadows aren't currently read by any software. We just check them manually in the AWS
  * console. Go to <https://console.aws.amazon.com/iot/home#/thinghub>, select a device, then click
  * "Shadows".
+ *
+ * @param {string} componentShortName A short name to identify the Greengrass component. Included in
+ *                 the name of the Thing Shadow.
+ * @param {string} componentVersion The version string of the Greengrass component.
+ * @param {string} dataposApiUrl The base URL for the DataPOS Public API (exposed by Core Services).
+ * @param {string} vendorUsername The vendor's username for authenticating with the Public API.
+ * @param {string} vendorPassword The vendor's password for authenticating with the Public API.
+ * @param {string} mqttEndpointAddress The address to connect to the AWS IoT MQTT broker.
  */
-exports.startReporting =
-    (componentShortName,
-     componentVersion,
-     dataposApiUrl,
-     vendorUsername,
-     vendorPassword,
-     mqttEndpointAddress) => {
-        setUpThingShadow(componentShortName, componentVersion, mqttEndpointAddress);
+exports.startReporting = async (componentShortName,
+                                componentVersion,
+                                dataposApiUrl,
+                                vendorUsername,
+                                vendorPassword,
+                                mqttEndpointAddress) => {
+    await setUpThingShadow(componentShortName, componentVersion, mqttEndpointAddress);
 
-        setInterval(
-            reportHealthCheck(
-                componentShortName, componentVersion, dataposApiUrl, vendorUsername, vendorPassword),
-            healthHeartBeatInterval);
-    };
+    setInterval(
+        reportHealthCheck(
+            componentShortName, componentVersion, dataposApiUrl, vendorUsername, vendorPassword),
+        healthHeartBeatInterval);
+};

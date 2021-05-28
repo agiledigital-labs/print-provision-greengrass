@@ -8,6 +8,9 @@ const healthReporting = require('health-reporting');
 
 const args = argsParser(process.argv);
 
+/** A short name to identify this Greengrass component. */
+const componentShortName = 'http';
+
 /** The port to serve the HTTP interface on. */
 const httpPort = 8083;
 
@@ -63,8 +66,9 @@ let printJobs = {
 const log = (message, printJobId) =>
     healthReporting.log(componentVersion, message, printJobId);
 
-const updateHealthStatus = (status, message, printJobId) =>
-    healthReporting.updateHealthStatus(componentVersion, status, message, printJobId);
+const updateHealthStatus = async (status, message, printJobId) =>
+    await healthReporting.updateHealthStatus(
+        componentShortName, componentVersion, status, message, printJobId);
 
 /** Handle submission of a print job. Can be either a remote (from the cloud) or local job. */
 const handleSubmit = async (req, res) => {
@@ -88,7 +92,7 @@ const handleSubmit = async (req, res) => {
   }
 
   // Local print job has id of -1 for PrintOS.jar.
-  // todoc add remoteJobId to the http interface docs. (if there are none, write some)
+  // TODO: Add remoteJobId to the HTTP interface docs. (If there are none, write some.)
   const id = data.remoteJobId || '-1';
 
   // Return 400 (Bad Request) if the ID has an unexpected type.
@@ -100,7 +104,7 @@ const handleSubmit = async (req, res) => {
   printJobs.ids.push(id);
   printJobs.data.push(printData);
 
-  updateHealthStatus(
+  await updateHealthStatus(
     'Success',
     `Added print job to the queue. Job data: [${printData}], queue IDs: ` +
       `[${JSON.stringify(printJobs.ids)}], queue data: [${JSON.stringify(printJobs.data)}]`,
@@ -153,7 +157,7 @@ const handleUpdate = async (req, res) => {
       const response = await axios.post(`${printServerUrl}/update`, params);
 
       if (response.status !== 200 && req.body.status === 'Completed') {
-        updateHealthStatus('Failed',
+        await updateHealthStatus('Failed',
           `Print job [${req.body.id}] update failed, but print job succeed, status [${req.body.status}]`,
           req.body.id);
 
@@ -177,11 +181,11 @@ const handleUpdate = async (req, res) => {
       }
 
       if (req.body.status === 'Completed') {
-        updateHealthStatus('Success', `Print job [${req.body.id}] completed`, req.body.id);
+        await updateHealthStatus('Success', `Print job [${req.body.id}] completed`, req.body.id);
 
         return res.send({ pass: true });
       } else {
-        updateHealthStatus('Failed',
+        await updateHealthStatus('Failed',
             `Print job [${req.body.id}] failed, status [${req.body.status}]`,
             req.body.id);
 
@@ -198,7 +202,7 @@ const handleUpdate = async (req, res) => {
     }
   } catch (err) {
     console.error(err);
-    updateHealthStatus('Failed',
+    await updateHealthStatus('Failed',
       `Failed to update job ` +
         `[${(req && req.body && req.body.id) ? req.body.id : 'unknown ID'}] ` +
         `[${(err && err.message) ? err.message : JSON.stringify(err)}]`);
@@ -210,14 +214,22 @@ const handleUpdate = async (req, res) => {
 };
 
 const main = () => {
-  // Log the environment vars.
+  // Log the environment vars and CLI options.
   log(JSON.stringify(process.env));
+  log(JSON.stringify({
+    componentVersion, dataposApiUrl, vendorUsername, vendorPassword, mqttEndpointAddress
+  }));
 
   // TODO: Check that all of the CLI options were passed in.
 
   // Regularly send the health status of this component to the server.
   healthReporting.startReporting(
-      'http', componentVersion, dataposApiUrl, vendorUsername, vendorPassword, mqttEndpointAddress);
+      componentShortName,
+      componentVersion,
+      dataposApiUrl,
+      vendorUsername,
+      vendorPassword,
+      mqttEndpointAddress);
 
   // Set up the HTTP server.
   const app = express();

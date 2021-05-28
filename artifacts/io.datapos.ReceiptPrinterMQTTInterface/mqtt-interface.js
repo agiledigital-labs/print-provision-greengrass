@@ -3,6 +3,9 @@ const awsIot = require('aws-iot-device-sdk');
 const argsParser = require('args-parser');
 const healthReporting = require('health-reporting');
 
+/** A short name to identify this Greengrass component. */
+const componentShortName = 'mqtt';
+
 /** The URL for the ReceiptPrinterHTTPInterface component. */
 const httpInterfaceBaseUrl = 'http://localhost:8083';
 
@@ -66,8 +69,9 @@ const deviceOptions = (clientId) => ({
 const log = (message, printJobId) =>
     healthReporting.log(componentVersion, message, printJobId);
 
-const updateHealthStatus = (status, message, printJobId) =>
-    healthReporting.updateHealthStatus(componentVersion, status, message, printJobId);
+const updateHealthStatus = async (status, message, printJobId) =>
+    await healthReporting.updateHealthStatus(
+        componentShortName, componentVersion, status, message, printJobId);
 
 /** Submit the job to be printed (via the HTTP interface). */
 const submitPrintJob = async (id, data) => {
@@ -81,9 +85,9 @@ const submitPrintJob = async (id, data) => {
   const response = await axios.post(`${httpInterfaceBaseUrl}/submit`, params);
 
   if (response.status === 200 && response.data.pass) {
-    updateHealthStatus('Success', 'Submitted print job.', id);
+    await updateHealthStatus('Success', 'Submitted print job.', id);
   } else {
-    updateHealthStatus('Failed',
+    await updateHealthStatus('Failed',
       `Failed to submit print job. Status code: [${response.status}], ` +
       `response: [${response.data}]`,
       id);
@@ -91,45 +95,56 @@ const submitPrintJob = async (id, data) => {
 };
 
 const main = () => {
-  // Log the environment vars.
-  console.log(JSON.stringify(process.env));
+  // Log the environment vars and CLI options.
+  log(JSON.stringify(process.env));
+  log(JSON.stringify({
+    componentVersion, dataposApiUrl, vendorUsername, vendorPassword, mqttEndpointAddress
+  }));
 
   // TODO: Check that all of the CLI options were passed in.
 
   // Regularly send the health status of this component to the server.
   healthReporting.startReporting(
-      'mqtt', componentVersion, dataposApiUrl, vendorUsername, vendorPassword, mqttEndpointAddress);
+      componentShortName,
+      componentVersion,
+      dataposApiUrl,
+      vendorUsername,
+      vendorPassword,
+      mqttEndpointAddress);
 
-  // Set up MQTT.
-  const device = new awsIot.device(deviceOptions(`${thingName}-device`));
+  // Create the MQTT connection to AWS IoT. If the device goes offline, this will automatically
+  // reconnect MQTT when the device reconnects to the internet.
+  const device = new awsIot.device(deviceOptions(`${thingName}-${componentShortName}`));
 
   // Subscribe to the print job topic for this device.
   device.subscribe(printJobTopic);
  
   // Log when MQTT connects or disconnects.
-  device.on('connect', () => {
-    updateHealthStatus('Success', `[${thingName}] is connected`);
+  device.on('connect', async () => {
+    await updateHealthStatus('Success', `[${thingName}] is connected`);
   });
 
-  device.on('disconnect', () => {
-    updateHealthStatus('Failed', `[${thingName}] is disconnected from MQTT`);
+  device.on('disconnect', async () => {
+    await updateHealthStatus('Failed', `[${thingName}] is disconnected from MQTT`);
   });
 
   // Handle the MQTT messages, which each contain a print job.
-  device.on('message', (topic, payload) => {
+  device.on('message', async (topic, payload) => {
     if (topic === printJobTopic) {
       // Parse the message.
       const parsedPayload = JSON.parse(payload.toString());
       const { id, data } = parsedPayload;
 
       // Send the print job along to be printed.
-      submitPrintJob(id, data);
+      await submitPrintJob(id, data);
     } else {
       log(`Received message on topic [${topic}] for Thing [${thingName}]. Ignoring.`);
     }
   });
 
-  // TODO: Should we handle (or at least log) other events such as 'offline'?
+  // TODO: Should we handle (or at least log) other events such as 'offline'? It could be useful to
+  //       to know when the device was and wasn't online, and the disconnect message doesn't get
+  //       logged. (Tested by running `ifconfig wlan0 down`.)
   //       https://github.com/mqttjs/MQTT.js/blob/master/README.md#client
 };
 

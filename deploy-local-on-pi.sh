@@ -180,7 +180,7 @@ echo "Deploying the components locally"
         $create_args)
 
 # Poll until it finishes deploying.
-echo "Waiting for the components to be deployed."
+echo "Waiting for the components to be deployed. This can take a while."
 ready="false"
 while [[ $ready != "true" ]]; do
     # Get the current list of components.
