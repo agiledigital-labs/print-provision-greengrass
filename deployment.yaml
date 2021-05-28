@@ -6,6 +6,43 @@ components:
     componentVersion: "2.1.0"
   aws.greengrass.LogManager:
     componentVersion: "2.1.0"
+    configurationUpdate:
+      merge: >-
+        {
+          "logsUploaderConfiguration": {
+            "systemLogsConfiguration": {
+              "uploadToCloudWatch": "true",
+              "minimumLogLevel": "INFO",
+              "diskSpaceLimit": "500",
+              "diskSpaceLimitUnit": "MB",
+              "deleteLogFileAfterCloudUpload": "false"
+            },
+            "componentLogsConfiguration": [
+              {
+                "componentName": "io.datapos.ReceiptPrinterHTTPInterface",
+                "minimumLogLevel": "DEBUG",
+                "diskSpaceLimit": "200",
+                "diskSpaceLimitUnit": "MB",
+                "deleteLogFileAfterCloudUpload": "false"
+              },
+              {
+                "componentName": "io.datapos.ReceiptPrinterMQTTInterface",
+                "minimumLogLevel": "DEBUG",
+                "diskSpaceLimit": "200",
+                "diskSpaceLimitUnit": "MB",
+                "deleteLogFileAfterCloudUpload": "false"
+              },
+              {
+                "componentName": "io.datapos.ReceiptPrinter",
+                "minimumLogLevel": "DEBUG",
+                "diskSpaceLimit": "200",
+                "diskSpaceLimitUnit": "MB",
+                "deleteLogFileAfterCloudUpload": "false"
+              }
+            ]
+          },
+          "periodicUploadIntervalSec": "300"
+        }
   aws.greengrass.Nucleus:
     componentVersion: "2.1.0"
     # To enable debug logging for the Nucleus:

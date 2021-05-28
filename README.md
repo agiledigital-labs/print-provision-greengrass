@@ -215,7 +215,7 @@ If you need to install a driver for an Epson TM-T20 printer, see
       rm -rf print-provision-greengrass/health-reporting/node_modules
       rsync --info=progress2 --archive \
           pi@raspberrypi.local:/home/pi/print-provision-greengrass/health-reporting/node_modules \
-          print-provision-greengrass/health-reporting/node_modules
+          print-provision-greengrass/health-reporting/
       ```
 1. Edit `deployment.yaml`:
    1. Change the `targetArn` field to the ARN of your AWS IoT Thing Group. You can find it at
