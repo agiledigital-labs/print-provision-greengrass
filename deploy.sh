@@ -89,6 +89,9 @@ function create_s3_bucket_for_artifacts {
 # Create an IAM policy to allow the devices to read the S3 bucket, if it doesn't already exist.
 function create_artifact_policy {
     # Check whether it already exists.
+    # TODO: This assumes that if the policy exists, it applies to the S3 bucket we're using, which
+    #       might not be the case. An easy fix might be to include the name of the bucket in the
+    #       policy's name and create a new one for each deployment.
     if aws iam list-attached-role-policies \
         --role-name $device_role | grep -q "$device_policy"; then
         echo "Found IAM policy '$device_policy' attached to role '$device_role'"

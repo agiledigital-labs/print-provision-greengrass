@@ -210,7 +210,13 @@ If you need to install a driver for an Epson TM-T20 printer, see
    1. Copy the project to one of the devices you're going to deploy to.
    1. Run `npm ci` in `health-reporting/` on that device. This will compile the AWS packages that
       have native code. It takes about 15 minutes.
-   1. Copy `health-reporting/node_modules/` from the device to your PC.
+   1. Copy `health-reporting/node_modules/` from the device to your PC. For example,
+      ```sh
+      rm -rf print-provision-greengrass/health-reporting/node_modules
+      rsync --info=progress2 --archive \
+          pi@raspberrypi.local:/home/pi/print-provision-greengrass/health-reporting/node_modules \
+          print-provision-greengrass/health-reporting/node_modules
+      ```
 1. Edit `deployment.yaml`:
    1. Change the `targetArn` field to the ARN of your AWS IoT Thing Group. You can find it at
       <https://console.aws.amazon.com/iot/home#/thingGroupHub>.
