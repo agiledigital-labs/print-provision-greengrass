@@ -1,0 +1,41 @@
+#!/bin/sh
+
+#
+# repair
+#
+# Called by the watchdog service when it detects an on-going error. Tries to recover from the error,
+# if it knows how.
+# See <https://manpages.debian.org/testing/watchdog/watchdog.8.en.html> and
+# <https://manpages.debian.org/testing/watchdog/watchdog.conf.5.en.html>.
+#
+
+# The first param is the error code.
+case $1 in
+# 100 ENETDOWN: network is down
+# 101 ENETUNREACH: network is unreachable
+100|101)
+    # Take all network interfaces down.
+    systemctl stop networking
+
+    ip link | awk '/^[0-9]: / {print $2}' | sed 's/:.*//' |
+    while read -r device; do
+        ifconfig "${device}" down
+    done
+
+    # Bring all network interfaces back up.
+    ip link | awk '/^[0-9]: / {print $2}' | sed 's/:.*//' |
+    while read -r device; do
+        ifconfig "${device}" up
+    done
+
+    systemctl start networking
+
+    # watchdogd will check whether this actually did fix the problem. If it didn't (and
+    # watchdog.conf was created following the instructions in README.md), watchdogd will reboot
+    # the system anyway.
+    exit 0;;
+esac
+
+# Report that we didn't repair the problem.
+exit "$1"
+

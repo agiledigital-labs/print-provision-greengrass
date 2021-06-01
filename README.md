@@ -77,11 +77,13 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
 │     Deploy remotely, i.e. through AWS. Use this for production deployments.
 ├── deployment.yaml
 │     Used by deploy.sh. Specifies the components to be deployed, among other things.
-└── recipes/
-    │ The config and metadata for the Greengrass components.
-    ├── io.datapos.ReceiptPrinterMQTTInterface.yaml
-    ├── io.datapos.ReceiptPrinterHTTPInterface.yaml
-    └── io.datapos.ReceiptPrinter.yaml
+├── recipes/
+│   │ The config and metadata for the Greengrass components.
+│   ├── io.datapos.ReceiptPrinterMQTTInterface.yaml
+│   ├── io.datapos.ReceiptPrinterHTTPInterface.yaml
+│   └── io.datapos.ReceiptPrinter.yaml
+└── repair
+      A script called when the system watchdog detects an error.
 ```
 
 ## Setting Up a Raspberry Pi
@@ -111,11 +113,11 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
       sudo apt install --yes openjdk-11-jdk
       ```
    1. Install Node.js 12. For me, this installed version 12.22.1-1nodesource1.
-      ```
-      $ sudo su
-      # curl -fsSL https://deb.nodesource.com/setup_12.x | bash -
-      # apt-get install -y nodejs
-      # exit
+      ```sh
+      sudo su
+      curl -fsSL https://deb.nodesource.com/setup_12.x | bash -
+      apt install --yes nodejs
+      exit
       ```
 1. On the Raspberry Pi, install the requirements for the AWS IoT Device JS SDK v2. For me, this
    installed CMake 3.16.3-3~bpo10+1 and libssl-dev 1.1.1d-0+deb10u6+rpt1.
@@ -153,12 +155,74 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
    1. Add a new item with the Raspberry Pi's Thing Name as the `destination`. Make a note of the
       `password` you choose as you will need it when you deploy this project to the Pi. If you have
       multiple devices in the same Thing Group, they currently all need to use the same password.
-1. Follow [Raspberry Pi Deployment Wifi Connection Lost
-   Issue](https://github.com/DataPOS-Labs/print-provision#raspberry-pi-deployment-wifi-connection-lost-issue)
-   to configure the Pi to reboot if its internet connection drops out.
-    - TODO: This will make internet drop-outs interrupt local printing. It should at least try
-      restarting the network interface first. See
-      [QFXFB-902](https://jira.agiledigital.com.au/browse/QFXFB-902).
+1. Configure the hardware watchdog to reboot the Pi if it freezes or its network connection drops
+   out.
+   
+   We only configure it to check "that successive intervals see a different value of RX bytes",
+   rather than pinging the server, so internet drop-outs won't interrupt local printing. If the Pi
+   loses internet connection, but not network connection, rebooting isn't likely to help.
+   1. Enable the watchdog device.
+      ```sh
+      sudo su
+      echo 'dtparam=watchdog=on' >> /boot/config.txt
+      reboot
+      ```
+   1. Copy the repair script to `/home/pi`.
+      ```
+      scp repair pi@raspberrypi.local:/home/pi/
+      ```
+   1. Set up the watchdog service.
+      ```sh
+      sudo su
+      # For me, this installed 5.15-2.
+      apt install --yes watchdog
+      # Install the repair script and set its permissions.
+      cp /home/pi/repair /usr/sbin/repair
+      chown root:root /usr/sbin/repair
+      chmod 700 /usr/sbin/repair
+      # Fail the watchdog if the Greengrass service isn't running.
+      mkdir -p /etc/watchdog.d
+      echo '#!/bin/sh' > /etc/watchdog.d/greengrass
+      echo 'systemctl is-active greengrass' >> /etc/watchdog.d/greengrass
+      chown root:root /etc/watchdog.d/greengrass
+      chmod 700 /etc/watchdog.d/greengrass
+      # Update the config file.
+      cat >> /etc/watchdog.conf << EOM
+      
+      # Added for PrintOS.
+      watchdog-device = /dev/watchdog
+      # This defaults to 60 on my Pi, but that causes an error.
+      # See https://www.raspberrypi.org/forums/viewtopic.php?t=244843
+      watchdog-timeout = 15
+      test-directory = /etc/watchdog.d
+      # Run the repair script when the watchdog fails to try to recover.
+      repair-binary = /usr/sbin/repair
+      # Kill the repair script if it takes more than 10 seconds.
+      repair-timeout = 10
+      # If the repair script reports success (returns 0), but the error hasn't cleared, reboot
+      # anyway.
+      repair-maximum = 1
+      # Wait 60 seconds for the error to clear on its own before repairing and rebooting.
+      retry-timeout = 60
+      # Fail the watchdog if 1 min load average goes over 24.
+      max-load-1 = 24
+      # Fail the watchdog if the network interface disconnects or stops working.
+      # IMPORTANT: Use 'ip link' to check that the interface name (wlan0) is right.
+      interface = wlan0
+      # Ensure the watchdog daemon will be scheduled in time.
+      realtime = yes
+      priority = 1
+      EOM
+      # Start the service.
+      systemctl enable watchdog
+      systemctl start watchdog
+      # Check it.
+      systemctl status watchdog
+      exit
+      ```
+   1. Test it by running `sudo ifconfig wlan0 down` and waiting a minute to see if the Pi comes back
+      online.
+   1. Check the logs with `journalctl -t watchdog`.
 1. Deploy the PrintOS software to the Raspberry Pi by following the Deploying section below.
 
 If you need to install a driver for an Epson TM-T20 printer, see
