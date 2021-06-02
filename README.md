@@ -15,7 +15,7 @@ internet when patrons place orders online.
 See <https://jira.agiledigital.com.au/browse/QFXFB-888> for more details. Based on
 <https://github.com/DataPOS-Labs/print-provision>.
 
-## Greengrass
+### Greengrass
 
 This project uses [AWS
 Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html),
@@ -25,6 +25,22 @@ Greengrass Core software that runs on the devices.
 The software is packaged into Greengrass "components", which are deployed through the Greengrass
 service. On the devices, the Greengrass Core software downloads the components, runs them, restarts
 them if they crash, reports their statuses to the Greengrass service and so on.
+
+## Contents
+
+ - [Component Diagram](#component-diagram)
+ - [Remote Printing Process](#remote-printing-process)
+ - [Local Network Printing Process](#local-network-printing-process)
+ - [Directory Structure](#directory-structure)
+ - [Setting Up a Raspberry Pi](#setting-up-a-raspberry-pi)
+ - [Deploying](#deploying)
+    - [For Development](#for-development)
+    - [For Production](#for-production)
+    - [Checking Your Deployment](#checking-your-deployment)
+ - [Releasing](#releasing)
+ - [Troubleshooting](#troubleshooting)
+ - [Testing](#testing)
+    - [Submitting a Test Job](#submitting-a-test-job)
 
 # Component Diagram
 
@@ -228,7 +244,8 @@ AWS IoT. The main difference between it and HTTP is that MQTT uses a pub/sub mod
    1. Test it by running `sudo ifconfig wlan0 down` and waiting a minute to see if the Pi comes back
       online.
    1. Check the logs with `journalctl -t watchdog`.
-1. Deploy the PrintOS software to the Raspberry Pi by following the Deploying section below.
+1. Deploy the PrintOS software to the Raspberry Pi by following the [Deploying](#deploying) section
+   below.
 
 If you need to install a driver for an Epson TM-T20 printer, see
 <https://github.com/DataPOS-Labs/print-provision#raspberry-pi-deps>.
@@ -265,8 +282,8 @@ If you need to install a driver for an Epson TM-T20 printer, see
 ### For Production
 
 1. Checkout the tag for the version you want to deploy, which is probably the most recent release
-   tag. See the Releasing section below if you want to deploy a version that hasn't been released
-   yet.
+   tag. See the [Releasing](#releasing) section below if you want to deploy a version that hasn't
+   been released yet.
 1. Run `nvm use` in the root dir to switch to the project's Node.js version.
 1. Run `npm ci` in `artifacts/io.datapos.ReceiptPrinterMQTTInterface/` and
    `artifacts/io.datapos.ReceiptPrinterHTTPInterface/`.
