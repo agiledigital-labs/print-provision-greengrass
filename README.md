@@ -12,14 +12,19 @@ devices.
 It receives print jobs from the POS devices when patrons place orders in person and from the
 internet when patrons place orders online.
 
-See <https://jira.agiledigital.com.au/browse/QFXFB-888> for more details.
+See <https://jira.agiledigital.com.au/browse/QFXFB-888> for more details. Based on
+<https://github.com/DataPOS-Labs/print-provision>.
 
-Based on <https://github.com/DataPOS-Labs/print-provision>. Runs in [AWS
-Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html).
+## Greengrass
 
- - todo explain what a greengrass component is and other basic info
- - todo document how greengrass handles health checking
- - todo document how to manage the devices using greengrass
+This project uses [AWS
+Greengrass](https://docs.aws.amazon.com/greengrass/v2/developerguide/what-is-iot-greengrass.html),
+an orchestration system for IoT devices. Its main parts are the Greengrass service in AWS and the
+Greengrass Core software that runs on the devices.
+
+The software is packaged into Greengrass "components", which are deployed through the Greengrass
+service. On the devices, the Greengrass Core software downloads the components, runs them, restarts
+them if they crash, reports their statuses to the Greengrass service and so on.
 
 # Component Diagram
 
