@@ -154,6 +154,8 @@ const reportHealthCheck =
                 exports.log(componentVersion,
                     `Successfully reported health. Response: ${JSON.stringify(hcResponse.data)}`);
             } catch (err) {
+                // TODO: Is it possible to log this info (or less) on a single line, preferably as a
+                //       JSON object? It takes up a lot of room when the device goes offline.
                 console.error('Failed to report health', err.message);
                 console.error(err);
                 console.dir(err.response);

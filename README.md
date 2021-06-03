@@ -37,6 +37,9 @@ them if they crash, reports their statuses to the Greengrass service and so on.
     - [For Development](#for-development)
     - [For Production](#for-production)
     - [Checking Your Deployment](#checking-your-deployment)
+ - [Administration](#administration)
+    - [Logs](#logs)
+    - [Monitoring](#monitoring)
  - [Releasing](#releasing)
  - [Troubleshooting](#troubleshooting)
  - [Testing](#testing)
@@ -300,8 +303,8 @@ If you need to install a driver for an Epson TM-T20 printer, see
       ```sh
       rm -rf print-provision-greengrass/health-reporting/node_modules
       rsync --info=progress2 --archive \
-          pi@raspberrypi.local:/home/pi/print-provision-greengrass/health-reporting/node_modules \
-          print-provision-greengrass/health-reporting/
+        pi@raspberrypi.local:/home/pi/print-provision-greengrass/health-reporting/node_modules \
+        print-provision-greengrass/health-reporting/
       ```
 1. Edit `deployment.yaml`:
    1. Change the `targetArn` field to the ARN of your AWS IoT Thing Group. You can find it at
@@ -345,6 +348,120 @@ deployed to it. The thing name will be "ReceiptPrinterPi" if you followed the ex
 `sudo /greengrass/v2/bin/greengrass-cli component list` on the device itself to get a list with more
 useful details.
 
+## Administration
+
+See the [Logging and
+monitoring](https://docs.aws.amazon.com/greengrass/v2/developerguide/logging-and-monitoring.html)
+section in the Greengrass docs for more info.
+
+### Logs
+
+We use Greengrass's built-in [Log
+Manager](https://docs.aws.amazon.com/greengrass/v2/developerguide/log-manager-component.html)
+component to send logs from the devices to CloudWatch. You can find those logs in the AWS console
+under [CloudWatch > Log Groups](https://console.aws.amazon.com/cloudwatch/home#logsV2:log-groups)
+in these log groups:
+
+ - `/aws/greengrass/UserComponent/[region]/io.datapos.ReceiptPrinter`
+ - `/aws/greengrass/UserComponent/[region]/io.datapos.ReceiptPrinterHTTPInterface`
+ - `/aws/greengrass/UserComponent/[region]/io.datapos.ReceiptPrinterMQTTInterface`
+ - `/aws/greengrass/GreengrassSystemComponent/[region]/System`
+
+The devices only send logs to CloudWatch after the log file has been rotated out and in some cases
+they will wait a long time before sending new logs. During development, it's much easier to use SSH
+to check the log files directly.
+
+To change the configuration for Log Manager, edit `deployment.yaml`.
+
+There's a bug somewhere that puts the logs from ReceiptPrinterHTTPInterface and
+ReceiptPrinterMQTTInterface into the log group for ReceiptPrinter as well. You can use this filter
+to clean up the logs in that group.
+
+```
+-"io.datapos.ReceiptPrinterHTTPInterface:" -"io.datapos.ReceiptPrinterMQTTInterface:" -"\"pass\":true"
+```
+
+This filter will hide the repeated health check logging in the logs from ReceiptPrinterHTTPInterface
+and ReceiptPrinterMQTTInterface.
+
+```
+-"Health report data:" -"Successfully reported health" -"Reporting health..."
+```
+
+### Monitoring
+
+You can check the latest health status reported from a device by the Receipt Printer software in the
+AWS console at
+
+```
+AWS IoT > Things > [the device's thing name] > Shadows > mqtt-health or http-health
+```
+
+The `mqtt-health` shadow is the status of the ReceiptPrinterMQTTInterface component and http-health
+is the status of ReceiptPrinterHTTPInterface. The ReceiptPrinter component doesn't currently report
+its health status because we don't have the source code for it.
+
+To see older health statuses, search in [the logs](#logs).
+
+You can also graph the health statuses in Grafana
+([staging](https://grafana.monitoring.staging.datapos.io),
+[live](https://grafana.monitoring.live.datapos.io)) by going to the Explore page and using the
+`external_service_status_total` metric. For example, this query will graph all failing health status
+reports.
+
+```
+external_service_status_total{status != 'Success'}
+```
+
+You can check the status reported to printos-serverless-service for each print job in the AWS
+console here. Replace `[stage]` with the stage name you used when you deployed
+printos-serverless-service.
+
+```
+https://console.aws.amazon.com/dynamodb/home#tables:selected=printJobsTable-[stage];tab=items
+```
+
+You can check the health of the Greengrass Core software and components on each device at
+[AWS IoT > Greengrass > Core Devices](https://console.aws.amazon.com/iot/home#/greengrass/v2/cores).
+Click one of the devices to see the health of each of its components individually.
+
+To set up more advanced monitoring, see [Gather system health telemetry
+data](https://docs.aws.amazon.com/greengrass/v2/developerguide/telemetry.html) in the AWS docs.
+
+## Troubleshooting
+
+Greengrass writes logs to the directory `/greengrass/v2/logs` on the device, including logs from the
+components. You can watch the most relevant logs with
+
+```sh
+sudo tail --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinterHTTPInterface.log \
+  --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinterMQTTInterface.log \
+  --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinter.log \
+  --follow=name /greengrass/v2/logs/greengrass.log
+```
+
+You can check on the Greengrass Core software with
+
+```sh
+systemctl status greengrass
+```
+
+List the components installed on the device with their version numbers and statuses with
+
+```sh
+sudo /greengrass/v2/bin/greengrass-cli component list
+```
+
+Manually remove a component after deploying it locally (e.g. with `deploy-local-to-pi.sh`) with
+
+```sh
+sudo /greengrass/v2/bin/greengrass-cli deployment create \
+  --remove [component name, e.g. io.datapos.ReceiptPrinter]
+```
+
+If you deployed the component remotely (e.g. with `deploy.sh`), you'll need to add`--groupId
+thinggroup/[thing group name, e.g. ReceiptPrinterGroup]`.
+
 ## Releasing
 
 1. Following semver, bump the version numbers of every component, even if they haven't been changed
@@ -356,24 +473,6 @@ useful details.
    1. Change the version numbers in `deployment.yaml`.
 1. Commit to `main`.
 1. Tag your commit with the new version number.
-
-## Troubleshooting
-
-Greengrass writes logs to the directory `/greengrass/v2/logs` on the device, including logs from the
-components. You can watch the most relevant logs with
-
-```sh
-sudo tail --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinterHTTPInterface.log \
-   --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinterMQTTInterface.log \
-   --follow=name /greengrass/v2/logs/io.datapos.ReceiptPrinter.log \
-   --follow=name /greengrass/v2/logs/greengrass.log
-```
-
-You can check on the Greengrass Core software with
-
-```
-systemctl status greengrass
-```
 
 ## Testing
 
