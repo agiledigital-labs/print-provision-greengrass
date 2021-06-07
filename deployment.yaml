@@ -57,10 +57,14 @@ components:
       # destinationPassword:
       #   The password for the devices set in the DB for printos-serverless-service. Currently, all
       #   devices in a deployment must use the same password.
+      # mockPrintOSJar: false
+      #   Set this to "true" if you don't have access to PrintOS.jar. See the Without the Private
+      #   Dependencies section of the README for more details.
       merge: >-
         {
           "printer": "PDF",
-          "destinationPassword": "blueberry"
+          "destinationPassword": "blueberry",
+          "mockPrintOSJar": "false"
         }
   io.datapos.ReceiptPrinterHTTPInterface:
     componentVersion: "1.0.0"

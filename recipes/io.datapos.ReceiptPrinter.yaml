@@ -14,6 +14,9 @@ ComponentConfiguration:
     # The password for the devices set in the DB for printos-serverless-service. Currently, all
     # devices in a deployment must use the same password.
     destinationPassword: blueberry
+    # Set this to "true" if you don't have access to PrintOS.jar. See the Without the Private
+    # Dependencies section of the README for more details.
+    mockPrintOSJar: false
 Manifests:
   - Platform:
       os: linux
@@ -27,4 +30,5 @@ Manifests:
         ARTIFACTS_PATH: '{artifacts:decompressedPath}/artifact'
         RECEIPT_PRINTER: '{configuration:/printer}'
         DESTINATION_PASSWORD: '{configuration:/destinationPassword}'
+        MOCK_PRINTOS_JAR: '{configuration:/mockPrintOSJar}'
       Run: 'bash {artifacts:decompressedPath}/artifact/run.sh'

@@ -1,5 +1,15 @@
 # PrintOS Receipt Printer Device Software
 
+We've open-sourced this repo as an example of an AWS IoT Greengrass project. This is our first time
+using Greengrass and this project isn't battle-tested yet, but we hope it will be useful as a
+reference for other engineers working on Greengrass projects.
+
+If you want to try running this software yourself, you'll want to read through the [Without the
+Private Dependencies](#without-the-private-dependencies) section. It explains how to mock the
+internal components that aren't included in this repo.
+
+---
+
 This repo contains
 
  - the software that runs on PrintOS devices, and
@@ -44,6 +54,9 @@ them if they crash, reports their statuses to the Greengrass service and so on.
  - [Troubleshooting](#troubleshooting)
  - [Testing](#testing)
     - [Submitting a Test Job](#submitting-a-test-job)
+ - [Without the Private Dependencies](#without-the-private-dependencies)
+    - [Mocks](#mocks)
+    - [Sending Print Jobs](#sending-print-jobs)
 
 # Component Diagram
 
@@ -514,3 +527,73 @@ r+Salt%3C%2Fh3%3E%3C%2Fcenter%3E++++%3Ccenter%3E+%3Ch4%3EOrder+and+Collect%3C%2F
 94%3C%2Fleft%3E+++++%3Cleft%3EName%3A+Sharon+Newman%3C%2Fleft%3E++++%3Ccenter%3E+Powered+by+DataPOS\
 +%3C%2Fcenter%3E+%22%7D'
 ```
+
+## Without the Private Dependencies
+
+This software has an internal dependency that we haven't made public, `PrintOS.jar`. It also expects
+to be able to reach two internal services, printos-serverless-service and our public API.
+
+You can still deploy the project and test it yourself, you just won't be able to actually print any
+receipts.
+
+First, follow the instructions in the [Setting Up a Raspberry Pi](#setting-up-a-raspberry-pi)
+section to prepare your IoT device. You should still be able to use them if you're going to use a
+standard PC or something other than a Raspberry Pi, but you'll need to adjust some of the
+instructions. And skip over the ones that assume you have access to the internal dependencies.
+
+Then you'll need to set up some simple mocks.
+
+### Mocks
+
+The easiest way to mock out the internal services is using `socat`. If you don't have it installed,
+your package manager probably has a package named `socat`. Run these commands on the system you'll
+be deploying to.
+
+```sh
+socat -v TCP-LISTEN:12345,crlf,reuseaddr,fork SYSTEM:"echo HTTP/1.1 200; echo" &
+socat -v TCP-LISTEN:12346,crlf,reuseaddr,fork \
+  SYSTEM:"echo HTTP/1.1 200; echo set-cookie\: abc; echo" &
+```
+
+Then you'll need to change some URLs in the config files, so they point to those mock services. In
+`deployment.yaml` and in each of the files in the `recipes/` dir, set `printServerUrl` to
+`"http://localhost:12346"` and set `dataposApiUrl` to `"http://localhost:12346"`.
+
+We've provided a script for mocking `PrintOS.jar`, `mock-PrintOS.jar.py`. Configure the project to
+use it by setting `mockPrintOSJar` to `"true"` in `deployment.yaml` and in
+`recipes/io.datapos.ReceiptPrinter.yaml`. Then install `mock-PrintOS.jar.py`'s dependency by running
+this in `artifacts/io.datapos.ReceiptPrinter/`:
+
+```sh
+python3 -m pip install --target ./py_modules requests
+```
+
+Now you should be able to deploy the project by following the instructions in the
+[Deploying](#deploying) section.
+
+### Sending Print Jobs
+
+The print jobs normally come from printos-serverless-service, so you'll need to send them yourself.
+You can do this from the AWS Console at [AWS IoT >
+Test](https://console.aws.amazon.com/iot/home#/test) > "Publish to a topic".
+
+Enter `print-job/YourThingName` as the topic name, where `YourThingName` is the name of your IoT
+device. ("ReceiptPrinterPi" if you followed the example in Setting Up a Raspberry Pi.) Then enter
+the following message payload and click Publish.
+
+```json
+{
+  "id": "1",
+  "data": "{\"mode\":\"tagged\",\"comments\":\"<h3>Example+Receipt</h3><center>Powered+by+DataPOS</center>\"}"
+}
+```
+
+If it worked, you should see this in `/greengrass/v2/logs/io.datapos.ReceiptPrinter.log`:
+
+```
+Reporting success for job 1. data: {"mode":"tagged","comments":"<h3>Example Receipt</h3><center>Powered by DataPOS</center>"}
+Response status: 200, body: {"pass":true}
+```
+
+And similar success messages in `io.datapos.ReceiptPrinterMQTTInterface.log` and
+`io.datapos.ReceiptPrinterHTTPInterface.log`.

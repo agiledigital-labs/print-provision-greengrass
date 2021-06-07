@@ -1,3 +1,17 @@
+/*
+ If you want to run this without Greengrass for testing, download or copy privKey.key, thingCert.crt
+ and rootCA.pem, then change the `deviceOptions` paths in this file so they point to the certs. Then
+ use:
+
+ node mqtt-interface.js \
+   "--datapos-api-url=https://public-api.shared.staging.datapos.io" \
+   "--vendor-username=brod" \
+   "--vendor-password=1234" \
+   "--mqtt-endpoint-address=a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com" \
+   "--component-version=1.0.0"
+
+ You'll probably need to change --print-server-url and --mqtt-endpoint-address. See deployment.yaml.
+ */
 const axios = require('axios');
 const awsIot = require('aws-iot-device-sdk');
 const argsParser = require('args-parser');

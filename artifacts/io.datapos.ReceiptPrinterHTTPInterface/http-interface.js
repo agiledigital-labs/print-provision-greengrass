@@ -1,3 +1,16 @@
+/*
+ To run for testing:
+
+ node http-interface.js \
+   "--print-server-url=https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev" \
+   "--datapos-api-url=https://public-api.shared.staging.datapos.io" \
+   "--vendor-username=brod" \
+   "--vendor-password=1234" \
+   "--mqtt-endpoint-address=a117qnlskg6hvb-ats.iot.ap-southeast-2.amazonaws.com" \
+   "--component-version=1.0.0"
+
+ You'll probably need to change --print-server-url and --mqtt-endpoint-address. See deployment.yaml.
+ */
 const express = require('express');
 const axios = require('axios');
 const bodyParser = require('body-parser');

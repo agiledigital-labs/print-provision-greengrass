@@ -44,10 +44,16 @@ echo "$printos_config_ini" > PrintOSconfig.ini
 echo "Wrote PrintOSconfig.ini:"
 cat PrintOSconfig.ini
 
-# Check that we have PrintOS.jar.
-printos_jar="$ARTIFACTS_PATH/PrintOS.jar"
-[[ -f "$printos_jar" ]] || fail "PrintOS.jar not found at $printos_jar"
+# PrintOS.jar isn't publicly available, so we provide a mock version of it.
+if [[ "$MOCK_PRINTOS_JAR" == "1" ]] || [[ "$MOCK_PRINTOS_JAR" == "true" ]]; then
+  echo "Starting the mock version of PrintOS.jar"
+  PYTHONPATH='./py_modules' python3 mock-PrintOS.jar.py
+else
+  # This component is configured to use the real PrintOS.jar, so check that we have it.
+  printos_jar="$ARTIFACTS_PATH/PrintOS.jar"
+  [[ -f "$printos_jar" ]] || fail "PrintOS.jar not found at $printos_jar"
 
-# Run PrintOS.jar. It prints the prints jobs with the printer it's configured to use.
-echo "Starting $printos_jar"
-java -jar "$printos_jar"
+  # Run PrintOS.jar. It prints the prints jobs with the printer it's configured to use.
+  echo "Starting $printos_jar"
+  java -jar "$printos_jar"
+fi
