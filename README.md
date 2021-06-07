@@ -268,6 +268,11 @@ If you need to install a driver for an Epson TM-T20 printer, see
 
 ## Deploying
 
+First, download
+[PrintOS.jar](https://github.com/DataPOS-Labs/print-provision/raw/master/printos-local-server/PrintOS.jar)
+from the print-provision repo and put it in `artifacts/io.datapos.ReceiptPrinter/`. If you don't
+have access to PrintOS.jar, you can [use the mock version](#mocks) instead.
+
 ### For Development
 
 1. Run `nvm use` in the root dir to switch to the project's Node.js version.
