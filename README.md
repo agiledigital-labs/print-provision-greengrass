@@ -562,7 +562,7 @@ socat -v TCP-LISTEN:12346,crlf,reuseaddr,fork \
 
 Then you'll need to change some URLs in the config files, so they point to those mock services. In
 `deployment.yaml` and in each of the files in the `recipes/` dir, set `printServerUrl` to
-`"http://localhost:12346"` and set `dataposApiUrl` to `"http://localhost:12346"`.
+`"http://localhost:12345"` and set `dataposApiUrl` to `"http://localhost:12346"`.
 
 We've provided a script for mocking `PrintOS.jar`, `mock-PrintOS.jar.py`. Configure the project to
 use it by setting `mockPrintOSJar` to `"true"` in `deployment.yaml` and in
