@@ -279,7 +279,7 @@ have access to PrintOS.jar, you can [use the mock version](#mocks) instead.
 1. Run `npm install` in `health-reporting/`, `artifacts/io.datapos.ReceiptPrinterMQTTInterface/` and
    `artifacts/io.datapos.ReceiptPrinterHTTPInterface/`.
 1. If you've deployed any of the components through AWS (i.e. not locally), you'll need to remove
-   them from the device before deploying different versions of them locally.
+   them from the device before deploying different versions of them locally. For example,
    ```sh
    sudo /greengrass/v2/bin/greengrass-cli deployment create \
       --remove io.datapos.ReceiptPrinter --groupId thinggroup/ReceiptPrinterGroup
@@ -293,7 +293,7 @@ have access to PrintOS.jar, you can [use the mock version](#mocks) instead.
 1. Copy the project directory to your Raspberry Pi by running `copy-to-pi.sh` (or some other way).
    `copy-to-pi.sh` assumes its hostname will be `raspberrypi.local`, so you'll need to edit it if
    you've changed that.
-1. If you haven't already done so on this Pi, or you've changed the dependencies in
+1. If you haven't already done so on this Pi, or if you've changed the dependencies in
    `health-reporting`, run `npm ci` in `health-reporting/` on the Pi. This will compile
    the AWS packages that have native code. It takes about 15 minutes, but you should only need to do
    it occasionally. That said, it's probably worth making a backup copy of
@@ -516,7 +516,7 @@ In this example, `https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/de
 test device (i.e. your Raspberry Pi).
 
 ```sh
-curl https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev/submit --data 'destination=Rec\
+curl https://3qpbp0efwe.execute-api.ap-southeast-2.amazonaws.com/dev/submit --data "destination=Rec\
 eiptPrinterPi&password=blueberry&data=%7B%22mode%22%3A%22tagged%22%2C%22comments%22%3A%22%3Ccenter%\
 3E+Powered+by+DataPOS+%3C%2Fcenter%3E+%3Ccenter%3E+Powered+by+DataPOS+%3C%2Fcenter%3E+%3Ccenter%3E+\
 %3Ch3%3ETime+Ordered%3A%3C%2Fh3%3E+%3C%2Fcenter%3E+%3Ccenter%3E+%3Ch3%3E+2%2F05%2F21+2%3A23+PM+%3C%\
@@ -530,7 +530,7 @@ nter%3E+++++%3Cleft%3E+%3Ch3%3E2+Hot+Chips%3C%2Fh3%3E+%3C%2Fleft%3E++++++%3Ccent
 r+Salt%3C%2Fh3%3E%3C%2Fcenter%3E++++%3Ccenter%3E+%3Ch4%3EOrder+and+Collect%3C%2Fh4%3E+%3C%2Fcenter%\
 3E+%3Ccenter%3E+%3Ch5%3EOrder+NO.+Y14%3C%2Fh5%3E+%3C%2Fcenter%3E++++%3Cleft%3EPhone%3A+%2B614001210\
 94%3C%2Fleft%3E+++++%3Cleft%3EName%3A+Sharon+Newman%3C%2Fleft%3E++++%3Ccenter%3E+Powered+by+DataPOS\
-+%3C%2Fcenter%3E+%22%7D'
++%3C%2Fcenter%3E+%22%7D"
 ```
 
 ## Without the Private Dependencies

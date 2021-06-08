@@ -44,7 +44,7 @@ exports.updateHealthStatus = async (componentShortName, componentVersion, status
         printJobId: printJobId || 'N/A',
     };
 
-    exports.log(componentVersion, printJobId, message);
+    exports.log(componentVersion, message, printJobId);
 
     // Update the Thing Shadow's state to store current device's status.
     if (shadowClient) {

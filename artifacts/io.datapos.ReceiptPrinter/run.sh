@@ -47,7 +47,7 @@ cat PrintOSconfig.ini
 # PrintOS.jar isn't publicly available, so we provide a mock version of it.
 if [[ "$MOCK_PRINTOS_JAR" == "1" ]] || [[ "$MOCK_PRINTOS_JAR" == "true" ]]; then
   echo "Starting the mock version of PrintOS.jar"
-  PYTHONPATH='./py_modules' python3 mock-PrintOS.jar.py
+  PYTHONPATH="$ARTIFACTS_PATH/py_modules" python3 "$ARTIFACTS_PATH/mock-PrintOS.jar.py"
 else
   # This component is configured to use the real PrintOS.jar, so check that we have it.
   printos_jar="$ARTIFACTS_PATH/PrintOS.jar"
