@@ -4,9 +4,13 @@ We've open-sourced this repo as an example of an AWS IoT Greengrass project. Thi
 using Greengrass and this project isn't battle-tested yet, but we hope it will be useful as a
 reference for other engineers working on Greengrass projects.
 
-If you want to try running this software yourself, you'll want to read through the [Without the
-Private Dependencies](#without-the-private-dependencies) section. It explains how to mock the
-internal components that aren't included in this repo.
+For some background about this repo, have a look at the article we wrote about it: [Cloud-printing
+for Restaurants with AWS IoT
+Greengrass](https://medium.com/agiledigital/cloud-printing-for-restaurants-with-aws-iot-greengrass-5ecfc7f390be).
+
+If you want to try running this software yourself, read through the [Without the Private
+Dependencies](#without-the-private-dependencies) section first. It explains how to mock the internal
+components that aren't included in this repo.
 
 ---
 
